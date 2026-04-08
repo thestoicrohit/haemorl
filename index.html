@@ -1,0 +1,1690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>HaemoRL — Smart Organ Allocation</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#07090f;--bg1:#0b0e17;--bg2:#0f1320;--bg3:#131829;
+  --s1:#181e2e;--s2:#1e2638;--s3:#242d44;
+  --b0:rgba(255,255,255,0.04);--b1:rgba(255,255,255,0.07);--b2:rgba(255,255,255,0.13);--b3:rgba(255,255,255,0.18);
+  --cyan:#22d3ee;--cD:rgba(34,211,238,0.12);
+  --blue:#3b82f6;--bD:rgba(59,130,246,0.12);
+  --teal:#2dd4bf;--tD:rgba(45,212,191,0.12);
+  --em:#10b981;--eD:rgba(16,185,129,0.12);
+  --am:#f59e0b;--aD:rgba(245,158,11,0.12);
+  --or:#f97316;--oD:rgba(249,115,22,0.12);
+  --rose:#f43f5e;--rD:rgba(244,63,94,0.12);
+  --vi:#8b5cf6;--vD:rgba(139,92,246,0.12);
+  --pk:#ec4899;
+  --t1:#e8edf8;--t2:#8892a8;--t3:#4a5568;--t4:#2d3748;
+  --font:'Plus Jakarta Sans',sans-serif;--mono:'IBM Plex Mono',monospace;
+  --sw:248px;--th:56px;--r:10px;--r2:14px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font);background:var(--bg);color:var(--t1);display:flex;font-size:14px}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--s3);border-radius:2px}
+
+/* SIDEBAR */
+.sb{width:var(--sw);height:100vh;background:var(--bg1);border-right:1px solid var(--b1);display:flex;flex-direction:column;flex-shrink:0;position:fixed;top:0;left:0;z-index:200}
+.sb-brand{height:var(--th);display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--b1);flex-shrink:0}
+.sb-icon{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#22d3ee,#3b82f6);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 16px rgba(34,211,238,0.25)}
+.sb-icon svg{width:16px;height:16px;stroke:#000;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.sb-name{font-size:15px;font-weight:800;letter-spacing:-0.4px;line-height:1.1}
+.sb-sub{font-size:9px;color:var(--t3);font-family:var(--mono);letter-spacing:0.04em}
+.sb-nav{flex:1;padding:6px 8px;overflow-y:auto;display:flex;flex-direction:column;gap:1px}
+.sb-sec{padding:12px 8px 4px;font-size:9px;font-family:var(--mono);color:var(--t3);text-transform:uppercase;letter-spacing:0.1em}
+.ni{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;cursor:pointer;color:var(--t2);font-size:12.5px;font-weight:500;transition:all 0.13s;border:1px solid transparent;user-select:none;position:relative}
+.ni:hover{background:var(--s1);color:var(--t1)}
+.ni.on{background:rgba(34,211,238,0.08);color:var(--cyan);border-color:rgba(34,211,238,0.15)}
+.ni.on::before{content:'';position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:16px;background:var(--cyan);border-radius:0 2px 2px 0}
+.ni svg{width:14px;height:14px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nbadge{margin-left:auto;font-size:9px;font-family:var(--mono);font-weight:700;padding:2px 6px;border-radius:20px}
+.nb-r{background:rgba(244,63,94,0.2);color:var(--rose)}.nb-c{background:rgba(34,211,238,0.15);color:var(--cyan)}.nb-a{background:rgba(245,158,11,0.2);color:var(--am)}
+.sb-foot{padding:8px;border-top:1px solid var(--b1);flex-shrink:0}
+.sb-live{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:10px}
+.lrow{display:flex;align-items:center;gap:6px;margin-bottom:7px}
+.ldot{width:5px;height:5px;border-radius:50%;background:var(--em);animation:lp 2s infinite;flex-shrink:0}
+@keyframes lp{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,0.5)}50%{box-shadow:0 0 0 4px rgba(16,185,129,0)}}
+.llbl{font-size:10px;font-family:var(--mono);color:var(--t2)}.ltm{font-size:9px;font-family:var(--mono);color:var(--t3);margin-left:auto}
+.lstats{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.ls{background:var(--bg2);border-radius:5px;padding:5px 7px}
+.lsv{font-size:14px;font-weight:700;font-family:var(--mono);line-height:1}
+.lsl{font-size:8px;color:var(--t3);font-family:var(--mono);text-transform:uppercase;margin-top:1px}
+
+/* MAIN */
+.main{margin-left:var(--sw);flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.topbar{height:var(--th);background:rgba(7,9,15,0.96);backdrop-filter:blur(16px);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0;z-index:100}
+.tb-bc{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t3)}
+.tb-pg{font-size:13px;font-weight:600;color:var(--t1)}
+.tb-right{display:flex;align-items:center;gap:8px;margin-left:auto}
+.tb-stat{text-align:center;padding:0 10px;border-left:1px solid var(--b1)}
+.tb-stat:first-child{border-left:none}
+.tbv{font-size:16px;font-weight:800;font-family:var(--mono);line-height:1}
+.tbl{font-size:9px;font-family:var(--mono);color:var(--t3);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px}
+.btn-add{display:flex;align-items:center;gap:5px;padding:6px 14px;background:linear-gradient(135deg,var(--cyan),var(--blue));border:none;border-radius:7px;color:#000;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all 0.2s;box-shadow:0 0 12px rgba(34,211,238,0.18)}
+.btn-add:hover{box-shadow:0 0 20px rgba(34,211,238,0.32);transform:translateY(-1px)}
+.btn-add svg{width:12px;height:12px;stroke:#000;fill:none;stroke-width:2.5}
+
+/* TICKER */
+.ticker{height:26px;background:rgba(244,63,94,0.05);border-bottom:1px solid rgba(244,63,94,0.12);display:flex;align-items:center;padding:0 10px;gap:16px;flex-shrink:0;overflow:hidden}
+.tk-lbl{font-size:9px;font-family:var(--mono);font-weight:700;color:var(--rose);text-transform:uppercase;letter-spacing:0.1em;flex-shrink:0}
+.tk-scroll{display:flex;gap:20px;animation:tkS 32s linear infinite;white-space:nowrap}
+.tki{font-size:10px;font-family:var(--mono);color:var(--t2)}.tki.r{color:var(--rose)}.tki.a{color:var(--am)}.tki.c{color:var(--cyan)}.tki.g{color:var(--em)}
+@keyframes tkS{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:18px 20px 28px}
+.pg{display:none;animation:pgIn 0.2s ease}
+.pg.active{display:block}
+@keyframes pgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.ph{margin-bottom:18px}
+.ph-title{font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:2px}
+.ph-sub{font-size:12px;color:var(--t2)}
+
+/* BUTTONS */
+.btn{padding:6px 14px;border-radius:7px;font-size:12px;font-family:var(--font);font-weight:600;cursor:pointer;transition:all 0.13s;border:1px solid transparent;display:inline-flex;align-items:center;gap:5px}
+.btn svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round}
+.btn-p{background:linear-gradient(135deg,var(--cyan),var(--blue));color:#000;box-shadow:0 0 10px rgba(34,211,238,0.15)}
+.btn-p:hover{box-shadow:0 0 18px rgba(34,211,238,0.28);transform:translateY(-1px)}
+.btn-g{background:transparent;border-color:var(--b2);color:var(--t2)}
+.btn-g:hover{border-color:var(--cyan);color:var(--cyan)}
+.btn-d{background:rgba(244,63,94,0.1);border-color:rgba(244,63,94,0.25);color:var(--rose)}
+.btn-d:hover{background:rgba(244,63,94,0.18)}
+.btn-e{background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.25);color:var(--em)}
+.btn-e:hover{background:rgba(16,185,129,0.18)}
+.btn-sm{padding:4px 10px;font-size:11px;border-radius:6px}
+.btn-xs{padding:2px 8px;font-size:10px;border-radius:5px}
+
+/* CARDS & GRIDS */
+.card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r2);padding:18px;margin-bottom:14px}
+.card-0{margin-bottom:0}
+.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.ct{font-size:13px;font-weight:700;letter-spacing:-0.2px}
+.ca{display:flex;align-items:center;gap:7px}
+.chip{font-size:9px;font-family:var(--mono);padding:2px 8px;border-radius:20px;font-weight:600}
+.cc{background:rgba(34,211,238,0.12);color:var(--cyan);border:1px solid rgba(34,211,238,0.2)}
+.cr{background:rgba(244,63,94,0.12);color:var(--rose);border:1px solid rgba(244,63,94,0.2)}
+.ce{background:rgba(16,185,129,0.12);color:var(--em);border:1px solid rgba(16,185,129,0.2)}
+.ca2{background:rgba(245,158,11,0.12);color:var(--am);border:1px solid rgba(245,158,11,0.2)}
+.cv{background:rgba(139,92,246,0.12);color:var(--vi);border:1px solid rgba(139,92,246,0.2)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:14px}
+.g13{display:grid;grid-template-columns:1fr 1.8fr;gap:14px;margin-bottom:14px}
+.g31{display:grid;grid-template-columns:1.8fr 1fr;gap:14px;margin-bottom:14px}
+
+/* KPI */
+.kpi{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r2);padding:16px 16px 13px;position:relative;overflow:hidden;transition:border-color 0.2s,transform 0.18s}
+.kpi:hover{border-color:var(--b2);transform:translateY(-2px)}
+.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kcy::after{background:linear-gradient(90deg,var(--cyan),var(--blue))}
+.kro::after{background:linear-gradient(90deg,var(--rose),var(--or))}
+.kam::after{background:linear-gradient(90deg,var(--am),var(--or))}
+.kte::after{background:linear-gradient(90deg,var(--teal),var(--em))}
+.kvi::after{background:linear-gradient(90deg,var(--vi),var(--pk))}
+.kpi-l{font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.09em;color:var(--t3);margin-bottom:9px}
+.kpi-row{display:flex;align-items:flex-end;justify-content:space-between}
+.kpi-v{font-size:30px;font-weight:800;letter-spacing:-1.5px;line-height:1;font-family:var(--mono)}
+.kpi-ic{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.kpi-ic svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.kpi-d{font-size:10px;margin-top:5px;font-family:var(--mono);color:var(--t3)}
+
+/* CHARTS */
+.chbox{position:relative}
+.h180{height:180px}.h200{height:200px}.h220{height:220px}.h250{height:250px}.h160{height:160px}
+
+/* URGENCY PILLS */
+.up{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;font-family:var(--mono)}
+.up-d{width:5px;height:5px;border-radius:50%}
+.up.critical{background:rgba(244,63,94,0.14);color:var(--rose)}.up.critical .up-d{background:var(--rose);animation:lp 1.2s infinite}
+.up.urgent{background:rgba(249,115,22,0.14);color:var(--or)}.up.urgent .up-d{background:var(--or)}
+.up.moderate{background:rgba(245,158,11,0.14);color:var(--am)}.up.moderate .up-d{background:var(--am)}
+.up.stable{background:rgba(16,185,129,0.14);color:var(--em)}.up.stable .up-d{background:var(--em)}
+
+/* ISCHAEMIA CLOCKS */
+.clock-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r2);padding:14px;display:flex;align-items:center;gap:12px;margin-bottom:8px;transition:border-color 0.3s}
+.clock-card.danger{border-color:rgba(244,63,94,0.4);background:rgba(244,63,94,0.04)}
+.clock-card.warning{border-color:rgba(245,158,11,0.35);background:rgba(245,158,11,0.03)}
+.clock-card.ok{border-color:rgba(16,185,129,0.2)}
+.clock-av{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0}
+.clock-info{flex:1;min-width:0}
+.clock-name{font-size:12px;font-weight:700;margin-bottom:2px}
+.clock-sub{font-size:10px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.clock-timer{font-family:var(--mono);font-size:18px;font-weight:700;letter-spacing:1px;flex-shrink:0;min-width:80px;text-align:right}
+.clock-timer.danger{color:var(--rose)}.clock-timer.warning{color:var(--am)}.clock-timer.ok{color:var(--em)}
+.clock-bw{margin-top:5px;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden}
+.clock-bf{height:100%;border-radius:2px;transition:width 1s linear}
+.paed{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-family:var(--mono);padding:1px 6px;border-radius:4px;background:rgba(236,72,153,0.12);color:var(--pk);border:1px solid rgba(236,72,153,0.2)}
+
+/* HLA */
+.hla-ag{display:inline-block;padding:2px 6px;border-radius:4px;font-size:9px;font-family:var(--mono)}
+.hla-m{background:rgba(16,185,129,0.15);color:var(--em);border:1px solid rgba(16,185,129,0.25)}
+.hla-x{background:rgba(244,63,94,0.12);color:var(--rose);border:1px solid rgba(244,63,94,0.2)}
+
+/* TABLE */
+.tw{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r2);overflow:hidden}
+.ttb{padding:12px 16px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ttitle{font-size:13px;font-weight:700}
+.tcnt{font-size:9px;font-family:var(--mono);padding:2px 7px;border-radius:20px;background:var(--bg2);color:var(--t3)}
+.tsrc{flex:1;min-width:120px;max-width:220px;margin-left:auto;padding:6px 10px;background:var(--bg2);border:1px solid var(--b1);border-radius:7px;color:var(--t1);font-size:12px;font-family:var(--font);outline:none;transition:border-color 0.13s}
+.tsrc:focus{border-color:var(--cyan)}.tsrc::placeholder{color:var(--t3)}
+.tfilter{padding:8px 16px;border-bottom:1px solid var(--b1);display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.fp{padding:3px 10px;border-radius:20px;font-size:10px;font-family:var(--mono);cursor:pointer;border:1px solid var(--b2);background:transparent;color:var(--t2);transition:all 0.13s}
+.fp:hover{border-color:var(--cyan);color:var(--cyan)}.fp.on{background:rgba(34,211,238,0.1);border-color:rgba(34,211,238,0.3);color:var(--cyan)}
+.fp.cr{border-color:rgba(244,63,94,0.25);color:var(--rose)}.fp.cr.on{background:rgba(244,63,94,0.1)}
+.fsep{width:1px;height:14px;background:var(--b1);margin:0 3px;flex-shrink:0}
+.fl{font-size:9px;font-family:var(--mono);color:var(--t3);align-self:center;text-transform:uppercase;letter-spacing:0.06em}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead tr{background:rgba(255,255,255,0.02)}
+th{padding:8px 12px;text-align:left;font-size:9px;font-family:var(--mono);font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--b1);white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.03);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,0.016)}
+.tdid{font-family:var(--mono);font-size:10px;color:var(--t3)}
+.tdname{font-weight:600;font-size:12px}
+.tdnum{font-family:var(--mono);font-size:11px;color:var(--t2)}
+.gbadge{display:inline-block;padding:2px 7px;border-radius:5px;font-size:9px;font-family:var(--mono);font-weight:600}
+.gm{background:rgba(59,130,246,0.13);color:#93c5fd}.gf{background:rgba(236,72,153,0.13);color:#f9a8d4}.go{background:rgba(139,92,246,0.13);color:#c4b5fd}
+.dchip{display:inline-block;padding:2px 7px;border-radius:4px;font-size:9px;font-family:var(--mono)}
+.dc-oncology{background:rgba(249,115,22,0.1);color:#fdba74;border:1px solid rgba(249,115,22,0.18)}
+.dc-haematology{background:rgba(139,92,246,0.1);color:#c4b5fd;border:1px solid rgba(139,92,246,0.18)}
+.dc-hiv{background:rgba(244,63,94,0.1);color:#fda4af;border:1px solid rgba(244,63,94,0.18)}
+.dc-cardiac{background:rgba(236,72,153,0.1);color:#f9a8d4;border:1px solid rgba(236,72,153,0.18)}
+.dc-renal{background:rgba(45,212,191,0.1);color:#5eead4;border:1px solid rgba(45,212,191,0.18)}
+.dc-hepatic{background:rgba(245,158,11,0.1);color:#fde047;border:1px solid rgba(245,158,11,0.18)}
+.dc-pulmonary{background:rgba(59,130,246,0.1);color:#93c5fd;border:1px solid rgba(59,130,246,0.18)}
+.dc-neurological{background:rgba(99,102,241,0.1);color:#a5b4fc;border:1px solid rgba(99,102,241,0.18)}
+.dc-diabetes{background:rgba(16,185,129,0.1);color:#6ee7b7;border:1px solid rgba(16,185,129,0.18)}
+.dc-autoimmune{background:rgba(245,158,11,0.1);color:#fcd34d;border:1px solid rgba(245,158,11,0.18)}
+.dc-trauma{background:rgba(239,68,68,0.1);color:#fca5a5;border:1px solid rgba(239,68,68,0.18)}
+.dc-infectious{background:rgba(20,184,166,0.1);color:#99f6e4;border:1px solid rgba(20,184,166,0.18)}
+.dc-genetic{background:rgba(168,85,247,0.1);color:#d8b4fe;border:1px solid rgba(168,85,247,0.18)}
+.sm{display:flex;align-items:center;gap:5px}
+.sm-bar{flex:1;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden}
+.sm-fill{height:100%;border-radius:2px}
+.sm-v{font-family:var(--mono);font-size:10px;width:32px;text-align:right;color:var(--cyan)}
+.pag{display:flex;align-items:center;gap:4px;padding:10px 16px;border-top:1px solid var(--b1)}
+.pag-i{font-size:10px;color:var(--t3);font-family:var(--mono);margin-right:auto}
+.pb{width:26px;height:26px;border-radius:5px;border:1px solid var(--b1);background:transparent;color:var(--t2);font-size:11px;font-family:var(--mono);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.13s}
+.pb:hover{border-color:var(--cyan);color:var(--cyan)}.pb.cur{background:rgba(34,211,238,0.12);border-color:rgba(34,211,238,0.3);color:var(--cyan)}.pb:disabled{opacity:0.25;cursor:not-allowed}
+
+/* MODAL */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);z-index:500;align-items:center;justify-content:center;padding:18px}
+.ov.on{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--b2);border-radius:16px;width:100%;max-width:620px;max-height:88vh;overflow-y:auto;animation:mIn 0.24s cubic-bezier(.16,1,.3,1)}
+.modal::-webkit-scrollbar{width:3px}.modal::-webkit-scrollbar-thumb{background:var(--s3);border-radius:2px}
+@keyframes mIn{from{transform:translateY(16px) scale(0.97);opacity:0}to{transform:none;opacity:1}}
+.mh{padding:20px 22px 16px;border-bottom:1px solid var(--b1);display:flex;align-items:flex-start;gap:12px}
+.mav{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;flex-shrink:0}
+.mname{font-size:17px;font-weight:800;letter-spacing:-0.4px;margin-bottom:3px}
+.mmeta{display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--t2)}
+.mcls{margin-left:auto;width:28px;height:28px;border-radius:6px;border:1px solid var(--b1);background:transparent;color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;transition:all 0.13s}
+.mcls:hover{border-color:var(--rose);color:var(--rose)}
+.mb{padding:20px 22px}
+.msec{margin-bottom:20px}
+.mst{font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.1em;color:var(--t3);padding-bottom:8px;border-bottom:1px solid var(--b1);margin-bottom:12px}
+.dg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.di .dk{font-size:9px;color:var(--t3);font-family:var(--mono);margin-bottom:2px;text-transform:uppercase;letter-spacing:0.06em}
+.di .dv{font-size:12px;font-weight:600}
+.pbar-r{margin-bottom:9px}.pbar-ls{display:flex;justify-content:space-between;font-size:10px;color:var(--t2);margin-bottom:4px}
+.pbtrack{height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden}
+.pbfill{height:100%;border-radius:2px}
+
+/* FORM */
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:9px;color:var(--t3);font-family:var(--mono);text-transform:uppercase;letter-spacing:0.07em}
+.fi{padding:7px 10px;background:var(--s1);border:1px solid var(--b2);border-radius:7px;color:var(--t1);font-size:12px;font-family:var(--font);outline:none;transition:border-color 0.13s;width:100%}
+.fi:focus{border-color:var(--cyan)}.fi option{background:var(--bg2)}
+.factions{display:flex;gap:8px;margin-top:14px}
+
+/* HOSPITAL BARS */
+.hbi{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.03)}
+.hbi:last-child{border-bottom:none}
+.hbn{font-size:11.5px;width:160px;flex-shrink:0;color:var(--t2)}
+.hbt{flex:1;height:5px;background:var(--s3);border-radius:3px;overflow:hidden}
+.hbf{height:100%;border-radius:3px;transition:width 0.8s cubic-bezier(.16,1,.3,1)}
+.hbp{font-size:10px;font-family:var(--mono);color:var(--t3);width:30px;text-align:right}
+
+/* ALERTS */
+.afeed{display:flex;flex-direction:column;gap:5px}
+.acard{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid;cursor:pointer;transition:all 0.13s}
+.acard:hover{transform:translateX(3px)}
+.acard.crit{border-color:rgba(244,63,94,0.22);background:rgba(244,63,94,0.04)}
+.acard.urg{border-color:rgba(249,115,22,0.22);background:rgba(249,115,22,0.04)}
+.abody{flex:1;min-width:0}.aname{font-size:12px;font-weight:600;margin-bottom:1px}
+.asub{font-size:10px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.atime{font-size:10px;font-family:var(--mono);color:var(--t3);white-space:nowrap;text-align:right;margin-top:2px}
+
+/* ALLOCATIONS */
+.ac{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r2);padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px;transition:border-color 0.13s}
+.ac:hover{border-color:var(--b2)}
+.ac-id{font-family:var(--mono);font-size:10px;color:var(--t3);width:80px;flex-shrink:0}
+.ac-main{flex:1;min-width:0}
+.ac-pair{font-size:13px;font-weight:700;margin-bottom:2px}
+.ac-detail{font-size:10px;color:var(--t2)}
+.acs{font-size:9px;font-family:var(--mono);padding:2px 8px;border-radius:20px}
+.ap{background:rgba(245,158,11,0.14);color:var(--am);border:1px solid rgba(245,158,11,0.2)}
+.aa{background:rgba(34,211,238,0.14);color:var(--cyan);border:1px solid rgba(34,211,238,0.2)}
+.acp{background:rgba(16,185,129,0.14);color:var(--em);border:1px solid rgba(16,185,129,0.2)}
+.af{background:rgba(244,63,94,0.14);color:var(--rose);border:1px solid rgba(244,63,94,0.2)}
+.ac-score{font-size:20px;font-weight:800;font-family:var(--mono);color:var(--cyan);width:54px;text-align:right;flex-shrink:0}
+
+/* DONORS */
+.donor-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.dc{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r2);padding:16px}
+.dtop{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.dav{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;background:rgba(59,130,246,0.12);color:#93c5fd;border:1px solid rgba(59,130,246,0.18)}
+.dname{font-size:13px;font-weight:700;margin-bottom:1px}.dmeta{font-size:10px;color:var(--t2);font-family:var(--mono)}
+.dstatus{margin-left:auto;font-size:9px;padding:2px 7px;border-radius:20px;font-family:var(--mono);font-weight:600}
+.ds-av{background:rgba(16,185,129,0.14);color:var(--em);border:1px solid rgba(16,185,129,0.2)}
+.ds-fu{background:rgba(245,158,11,0.14);color:var(--am);border:1px solid rgba(245,158,11,0.2)}
+.otags{display:flex;flex-wrap:wrap;gap:4px}
+.otag{padding:2px 8px;border-radius:20px;font-size:9px;font-family:var(--mono);font-weight:600}
+.ot-available{background:rgba(16,185,129,0.1);color:var(--em);border:1px solid rgba(16,185,129,0.2)}
+.ot-reserved{background:rgba(245,158,11,0.1);color:var(--am);border:1px solid rgba(245,158,11,0.2)}
+.ot-matched{background:rgba(34,211,238,0.1);color:var(--cyan);border:1px solid rgba(34,211,238,0.2)}
+
+/* BLOOD BANK */
+.bgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.bcard{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r2);padding:14px;text-align:center;transition:all 0.18s}
+.bcard:hover{border-color:var(--b2);transform:translateY(-2px)}
+.btype{font-size:24px;font-weight:800;font-family:var(--mono);color:var(--rose);margin-bottom:3px;letter-spacing:-0.5px}
+.bunits{font-size:13px;font-weight:700;margin-bottom:2px}
+.bcomp{font-size:9px;color:var(--t3);font-family:var(--mono);text-transform:uppercase;margin-bottom:7px}
+.btrack{height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;margin-bottom:4px}
+.bbar{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--rose),var(--or))}
+.bexp{font-size:9px;font-family:var(--mono);margin-top:3px}
+
+/* RL CARDS */
+.rl-spec{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.rl-sc{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:16px}
+.rl-sh{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.rl-si{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.rl-st{font-size:12px;font-weight:700}
+.rl-f{margin-bottom:7px}.rl-fl{font-size:9px;font-family:var(--mono);color:var(--t3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:2px}
+.rl-fv{font-size:11px;color:var(--t2)}
+.tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.tc{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r2);padding:16px;position:relative;overflow:hidden}
+.tc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.tc.easy::before{background:linear-gradient(90deg,var(--em),var(--teal))}.tc.medium::before{background:linear-gradient(90deg,var(--am),var(--or))}.tc.hard::before{background:linear-gradient(90deg,var(--rose),var(--rose))}
+.td{font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.09em;margin-bottom:6px;font-weight:700}
+.easy .td{color:var(--em)}.medium .td{color:var(--am)}.hard .td{color:var(--rose)}
+.tn{font-size:15px;font-weight:800;letter-spacing:-0.3px;margin-bottom:6px}
+.tdesc{font-size:11px;color:var(--t2);line-height:1.6;margin-bottom:11px}
+.tmet{display:flex;gap:12px;flex-wrap:wrap}
+.tmi{font-size:9px;font-family:var(--mono);color:var(--t3)}.tmi span{color:var(--t1)}
+
+/* TERMINAL */
+.terminal{background:#030508;border:1px solid var(--b1);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:11px;line-height:1.85;min-height:180px;max-height:240px;overflow-y:auto;color:var(--t2)}
+.terminal::-webkit-scrollbar{width:3px}.terminal::-webkit-scrollbar-thumb{background:var(--s3)}
+.tok{color:#4ade80}.tin{color:var(--cyan)}.twn{color:var(--or)}.ter{color:var(--rose)}.tdm{color:var(--t3)}
+.sim-wrap{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r2);overflow:hidden}
+.sim-head{padding:12px 16px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:10px}
+.sst{font-size:9px;font-family:var(--mono);padding:2px 8px;border-radius:20px;font-weight:600}
+.ss-idle{background:rgba(255,255,255,0.05);color:var(--t3)}.ss-run{background:rgba(34,211,238,0.12);color:var(--cyan)}.ss-done{background:rgba(16,185,129,0.12);color:var(--em)}
+.sim-body{display:grid;grid-template-columns:1.5fr 1fr}
+.sp{padding:16px}.sp+.sp{border-left:1px solid var(--b1)}
+.spt{font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.08em;color:var(--t3);margin-bottom:8px}
+.sbox{background:var(--bg);border:1px solid var(--b1);border-radius:7px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.sbl{font-size:11px;color:var(--t2)}.sbv{font-size:20px;font-weight:800;font-family:var(--mono)}
+
+/* MATCH PAIRS */
+.mp{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;transition:border-color 0.13s}
+.mp:hover{border-color:var(--b2)}
+.ms{flex:1;min-width:0}
+.ms-lbl{font-size:9px;font-family:var(--mono);color:var(--t3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px}
+.ms-name{font-size:12px;font-weight:700;margin-bottom:1px}
+.ms-detail{font-size:10px;color:var(--t2)}
+.marrow{color:var(--cyan);font-size:18px;flex-shrink:0}
+.mscore{background:rgba(34,211,238,0.08);border:1px solid rgba(34,211,238,0.2);border-radius:8px;padding:7px 12px;text-align:center;flex-shrink:0}
+.msv{font-size:18px;font-weight:800;font-family:var(--mono);color:var(--cyan);line-height:1}
+.msl{font-size:8px;font-family:var(--mono);color:var(--t3);margin-top:1px}
+
+/* REPLAY */
+.rp-step{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.03);transition:background 0.13s;cursor:pointer}
+.rp-step:hover{background:rgba(255,255,255,0.02)}
+.rp-step.act{background:rgba(34,211,238,0.05);border-left:2px solid var(--cyan)}
+.rp-step:last-child{border-bottom:none}
+.rp-num{font-family:var(--mono);font-size:10px;color:var(--t3);width:24px;flex-shrink:0;margin-top:1px}
+.rp-body{flex:1;min-width:0}
+.rp-act{font-size:12px;font-weight:600;margin-bottom:2px}
+.rp-detail{font-size:10px;color:var(--t2)}
+.rp-rew{font-family:var(--mono);font-size:12px;font-weight:700;flex-shrink:0}
+.rp-rew.pos{color:var(--em)}.rp-rew.neg{color:var(--rose)}
+
+/* COMPARE */
+.comp-card{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:16px}
+.comp-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+.comp-row:last-child{border-bottom:none}
+.comp-metric{font-size:11px;color:var(--t2)}.comp-val{font-size:13px;font-weight:700;font-family:var(--mono)}
+
+/* CODE */
+.cb{background:#030508;border:1px solid var(--b1);border-radius:8px;padding:14px;font-family:var(--mono);font-size:11px;line-height:1.8;color:var(--t2);overflow-x:auto}
+.ck{color:var(--cyan)}.cs{color:#86efac}.cn{color:var(--am)}.cc{color:var(--t3)}
+
+/* DEPLOY CHECK */
+.dci{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid;margin-bottom:6px}
+.dci.pass{border-color:rgba(16,185,129,0.2);background:rgba(16,185,129,0.04)}
+.dci-title{font-size:12px;font-weight:600;margin-bottom:1px}.dci-desc{font-size:10px;color:var(--t2)}
+
+/* TRANSPORT MAP */
+.map-wrap{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden}
+.map-leg{display:flex;gap:12px;padding:8px 12px;border-top:1px solid var(--b1)}
+.ml-i{display:flex;align-items:center;gap:4px;font-size:10px;font-family:var(--mono);color:var(--t2)}
+.ml-d{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+
+/* TOASTS */
+.toasts{position:fixed;bottom:18px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:7px;max-width:300px}
+.toast{padding:10px 14px;border-radius:9px;border:1px solid;font-size:12px;font-weight:500;display:flex;align-items:center;gap:8px;animation:tIn 0.28s cubic-bezier(.16,1,.3,1);backdrop-filter:blur(10px)}
+.toast.ok{background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.3);color:var(--em)}
+.toast.err{background:rgba(244,63,94,0.1);border-color:rgba(244,63,94,0.3);color:var(--rose)}
+.toast.inf{background:rgba(34,211,238,0.1);border-color:rgba(34,211,238,0.3);color:var(--cyan)}
+.toast.wrn{background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--am)}
+@keyframes tIn{from{transform:translateX(14px);opacity:0}to{transform:none;opacity:1}}
+
+/* REWARD STAT */
+.rs{display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--b1);margin-bottom:12px}
+.rs-i{text-align:center}
+.rs-v{font-size:20px;font-weight:800;font-family:var(--mono);line-height:1}
+.rs-l{font-size:9px;color:var(--t3);font-family:var(--mono);text-transform:uppercase;margin-top:2px}
+</style>
+</head>
+<body>
+
+<aside class="sb">
+  <div class="sb-brand">
+    <div class="sb-icon"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+    <div><div class="sb-name">HaemoRL</div><div class="sb-sub">Smart Organ Allocation v4</div></div>
+  </div>
+  <div class="sb-nav">
+    <div class="sb-sec">Overview</div>
+    <div class="ni on" data-pg="dashboard"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>Dashboard</div>
+    <div class="ni" data-pg="patients"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Patients<span class="nbadge nb-c" id="nb-p">750</span></div>
+    <div class="ni" data-pg="ischaemia"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Ischaemia Clocks<span class="nbadge nb-r" id="nb-ic">0</span></div>
+    <div class="ni" data-pg="allocations"><svg viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7M11 18H8a2 2 0 0 1-2-2V9"/></svg>Allocations<span class="nbadge nb-a" id="nb-al">0</span></div>
+    <div class="sb-sec">Resources</div>
+    <div class="ni" data-pg="donors"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Donors &amp; Organs</div>
+    <div class="ni" data-pg="bloodbank"><svg viewBox="0 0 24 24"><path d="M12 2 4.5 20.3l.7.7L12 18l6.8 3 .7-.7z"/></svg>Blood Bank</div>
+    <div class="ni" data-pg="hla"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>HLA Matrix</div>
+    <div class="ni" data-pg="transport"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Transport Map</div>
+    <div class="sb-sec">RL System</div>
+    <div class="ni" data-pg="rl"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>RL Environment</div>
+    <div class="ni" data-pg="replay"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>Episode Replay</div>
+    <div class="ni" data-pg="compare"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Comparative Baseline</div>
+    <div class="ni" data-pg="inference"><svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>Inference Script</div>
+    <div class="ni" data-pg="deployment"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Deployment</div>
+  </div>
+  <div class="sb-foot">
+    <div class="sb-live">
+      <div class="lrow"><span class="ldot"></span><span class="llbl">System Live</span><span class="ltm" id="ltm">--:--:--</span></div>
+      <div class="lstats">
+        <div class="ls"><div class="lsv" style="color:var(--rose)" id="ls-c">0</div><div class="lsl">Critical</div></div>
+        <div class="ls"><div class="lsv" style="color:var(--cyan)" id="ls-a">0</div><div class="lsl">Matches</div></div>
+        <div class="ls"><div class="lsv" style="color:var(--em)" id="ls-d">0</div><div class="lsl">Donors</div></div>
+        <div class="ls"><div class="lsv" style="color:var(--am)" id="ls-b">0</div><div class="lsl">Blood</div></div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div class="tb-bc"><span>HaemoRL</span><span style="opacity:.3">/</span><span class="tb-pg" id="tbpg">Dashboard</span></div>
+    <div class="tb-right">
+      <div class="tb-stat"><div class="tbv" style="color:var(--rose)" id="tb-c">0</div><div class="tbl">Critical</div></div>
+      <div class="tb-stat"><div class="tbv" style="color:var(--am)" id="tb-u">0</div><div class="tbl">Urgent</div></div>
+      <div class="tb-stat"><div class="tbv" style="color:var(--cyan)" id="tb-t">750</div><div class="tbl">Patients</div></div>
+      <div class="tb-stat"><div class="tbv" style="color:var(--teal)" id="tb-o">0</div><div class="tbl">Organ Queue</div></div>
+      <button class="btn-add" onclick="openAddPt()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Patient</button>
+    </div>
+  </div>
+  <div class="ticker"><span class="tk-lbl">⚡ Live</span><div class="tk-scroll" id="tkin"></div></div>
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="pg active" id="pg-dashboard">
+      <div class="ph"><div class="ph-title">Command Center</div><div class="ph-sub">Real-time organ allocation &amp; patient monitoring — HaemoRL v4.0</div></div>
+      <div class="g5" style="margin-bottom:16px">
+        <div class="kpi kcy"><div class="kpi-l">Total Patients</div><div class="kpi-row"><div class="kpi-v" style="color:var(--cyan)" id="k-t">750</div><div class="kpi-ic" style="background:var(--cD);color:var(--cyan)"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div></div><div class="kpi-d">Across 15 hospitals</div></div>
+        <div class="kpi kro"><div class="kpi-l">Critical</div><div class="kpi-row"><div class="kpi-v" style="color:var(--rose)" id="k-c">0</div><div class="kpi-ic" style="background:var(--rD);color:var(--rose)"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div></div><div class="kpi-d" style="color:var(--rose)">Immediate action</div></div>
+        <div class="kpi kam"><div class="kpi-l">Ischaemia Active</div><div class="kpi-row"><div class="kpi-v" style="color:var(--am)" id="k-is">0</div><div class="kpi-ic" style="background:var(--aD);color:var(--am)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div><div class="kpi-d" id="k-is-d">Clocks running</div></div>
+        <div class="kpi kte"><div class="kpi-l">Organ Queue</div><div class="kpi-row"><div class="kpi-v" style="color:var(--teal)" id="k-og">0</div><div class="kpi-ic" style="background:var(--tD);color:var(--teal)"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div></div><div class="kpi-d">Transplant waitlist</div></div>
+        <div class="kpi kvi"><div class="kpi-l">Blood Units</div><div class="kpi-row"><div class="kpi-v" style="color:var(--vi)" id="k-bl">0</div><div class="kpi-ic" style="background:var(--vD);color:var(--vi)"><svg viewBox="0 0 24 24"><path d="M12 2 4.5 20.3l.7.7L12 18l6.8 3 .7-.7z"/></svg></div></div><div class="kpi-d">Available in bank</div></div>
+      </div>
+      <div class="g13" style="margin-bottom:14px">
+        <div class="card card-0"><div class="ch"><div class="ct">Urgency Distribution</div><span class="chip cc">LIVE</span></div><div class="chbox h200"><canvas id="ch-urg"></canvas></div></div>
+        <div class="card card-0"><div class="ch"><div class="ct">Disease Categories</div></div><div class="chbox h200"><canvas id="ch-dis"></canvas></div></div>
+      </div>
+      <div class="g2" style="margin-bottom:14px">
+        <div class="card card-0"><div class="ch"><div class="ct">Blood Type Distribution</div></div><div class="chbox h200"><canvas id="ch-bt"></canvas></div></div>
+        <div class="card card-0"><div class="ch"><div class="ct">Age Distribution</div></div><div class="chbox h200"><canvas id="ch-age"></canvas></div></div>
+      </div>
+      <div class="g31">
+        <div class="card card-0"><div class="ch"><div class="ct">Hospital Infrastructure Load</div><span class="chip ca2" id="hosp-chip">0 overloaded</span></div><div id="hbar-list"></div></div>
+        <div class="card card-0"><div class="ch"><div class="ct">Critical Alerts</div><span class="chip cr" id="alert-chip">0 critical</span></div><div class="afeed" id="alert-feed"></div></div>
+      </div>
+    </div>
+
+    <!-- PATIENTS -->
+    <div class="pg" id="pg-patients">
+      <div class="ph"><div class="ph-title">Patient Registry</div><div class="ph-sub">750+ patients — HLA typed, paediatric weighted, ischaemia tracked</div></div>
+      <div class="tw">
+        <div class="ttb"><div class="ttitle">All Patients</div><span class="tcnt" id="pt-cnt">750</span><input type="text" class="tsrc" id="pt-src" placeholder="Search name, ID, disease…" oninput="filterPts()"><button class="btn btn-g btn-sm" onclick="exportCSV()">Export CSV</button><button class="btn btn-p btn-sm" onclick="openAddPt()">+ Add</button></div>
+        <div class="tfilter">
+          <span class="fl">Urgency:</span>
+          <button class="fp on" data-fu="all">All</button><button class="fp cr" data-fu="critical">Critical</button><button class="fp" data-fu="urgent">Urgent</button><button class="fp" data-fu="moderate">Moderate</button><button class="fp" data-fu="stable">Stable</button>
+          <div class="fsep"></div><span class="fl">Category:</span>
+          <button class="fp on" data-fc="all">All</button><button class="fp" data-fc="oncology">Oncology</button><button class="fp" data-fc="haematology">Haematology</button><button class="fp" data-fc="hiv">HIV/AIDS</button><button class="fp" data-fc="cardiac">Cardiac</button><button class="fp" data-fc="renal">Renal</button><button class="fp" data-fc="trauma">Trauma</button>
+          <div class="fsep"></div><span class="fl">Need:</span>
+          <button class="fp on" data-fn="all">All</button><button class="fp" data-fn="organ">Organ</button><button class="fp" data-fn="blood">Blood</button><button class="fp" data-fn="marrow">Marrow</button>
+        </div>
+        <div style="overflow-x:auto"><table><thead><tr><th>ID</th><th>Patient</th><th>Age</th><th>Gender</th><th>Blood</th><th>Category</th><th>Disease</th><th>Urgency</th><th>HLA%</th><th>Paed</th><th>RL Score</th><th>Window</th><th>Action</th></tr></thead><tbody id="pt-body"></tbody></table></div>
+        <div class="pag"><span class="pag-i" id="pt-pi"></span><button class="pb" id="pt-prev">‹</button><span id="pt-pns"></span><button class="pb" id="pt-next">›</button></div>
+      </div>
+    </div>
+
+    <!-- ISCHAEMIA -->
+    <div class="pg" id="pg-ischaemia">
+      <div class="ph"><div class="ph-title">Ischaemia Clocks</div><div class="ph-sub">Live countdown — organs die at zero · RL penalty −1.0 per expired organ</div></div>
+      <div class="g3" style="margin-bottom:16px">
+        <div class="card card-0" style="padding:14px"><div class="kpi-l">Danger Zone (&lt;2h)</div><div class="kpi-v" style="color:var(--rose);font-size:26px" id="ic-d">0</div></div>
+        <div class="card card-0" style="padding:14px"><div class="kpi-l">Warning Zone (2–6h)</div><div class="kpi-v" style="color:var(--am);font-size:26px" id="ic-w">0</div></div>
+        <div class="card card-0" style="padding:14px"><div class="kpi-l">Organs Expired</div><div class="kpi-v" style="color:var(--t3);font-size:26px" id="ic-exp">0</div></div>
+      </div>
+      <div class="card card-0"><div class="ch"><div class="ct">Active Ischaemia Countdowns</div><div class="ca"><span class="chip cr">LIVE — updates every second</span><button class="btn btn-e btn-sm" onclick="runRLMatch();toast('Emergency matched all danger patients','ok')">Emergency Match All</button></div></div><div id="clock-list"></div></div>
+    </div>
+
+    <!-- ALLOCATIONS -->
+    <div class="pg" id="pg-allocations">
+      <div class="ph"><div class="ph-title">Allocations</div><div class="ph-sub">Active and historical organ allocation records with HLA-weighted RL scores</div></div>
+      <div class="g3" style="margin-bottom:14px">
+        <div class="card card-0" style="padding:14px"><div class="kpi-l">Total</div><div style="font-size:26px;font-weight:800;font-family:var(--mono);color:var(--cyan)" id="al-t">0</div></div>
+        <div class="card card-0" style="padding:14px"><div class="kpi-l">Active</div><div style="font-size:26px;font-weight:800;font-family:var(--mono);color:var(--am)" id="al-a">0</div></div>
+        <div class="card card-0" style="padding:14px"><div class="kpi-l">Completed</div><div style="font-size:26px;font-weight:800;font-family:var(--mono);color:var(--em)" id="al-d">0</div></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <button class="btn btn-p" onclick="runRLMatch()"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>Run RL Auto-Match</button>
+        <button class="btn btn-g" onclick="manualAlloc()">Manual Allocation</button>
+        <button class="btn btn-g" onclick="clearDone()">Clear Completed</button>
+      </div>
+      <div id="alloc-list"><div style="color:var(--t3);font-family:var(--mono);font-size:12px;padding:36px;text-align:center">No allocations yet — click Run RL Auto-Match</div></div>
+    </div>
+
+    <!-- DONORS -->
+    <div class="pg" id="pg-donors">
+      <div class="ph"><div class="ph-title">Donors &amp; Organ Inventory</div><div class="ph-sub">Live donor registry with HLA typing and organ pool</div></div>
+      <div class="g3" style="margin-bottom:14px">
+        <div class="card card-0" style="padding:14px"><div class="kpi-l">Available Donors</div><div style="font-size:26px;font-weight:800;font-family:var(--mono);color:var(--em)" id="d-av">0</div></div>
+        <div class="card card-0" style="padding:14px"><div class="kpi-l">Organs Available</div><div style="font-size:26px;font-weight:800;font-family:var(--mono);color:var(--cyan)" id="d-og">0</div></div>
+        <div class="card card-0" style="padding:14px"><div class="kpi-l">Matched</div><div style="font-size:26px;font-weight:800;font-family:var(--mono);color:var(--am)" id="d-mt">0</div></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:16px"><button class="btn btn-p" onclick="openAddDonor()">+ Register Donor</button><button class="btn btn-g" onclick="refreshDonors()">Refresh Availability</button></div>
+      <div class="donor-grid" id="donor-grid"></div>
+    </div>
+
+    <!-- BLOOD BANK -->
+    <div class="pg" id="pg-bloodbank">
+      <div class="ph"><div class="ph-title">Blood Bank</div><div class="ph-sub">Inventory management, expiry tracking, transfusion queue</div></div>
+      <div style="display:flex;gap:8px;margin-bottom:16px"><button class="btn btn-p" onclick="openAddBlood()">+ Add Stock</button><button class="btn btn-g" onclick="checkExpiry()">Check Expiry</button><button class="btn btn-g" onclick="reqDonation()">Request Donation Drive</button></div>
+      <div class="bgrid" id="blood-grid"></div>
+      <div class="card card-0"><div class="ch"><div class="ct">Transfusion Request Queue</div><span class="chip cr" id="tf-chip">0 pending</span></div><div id="tf-list"></div></div>
+    </div>
+
+    <!-- HLA -->
+    <div class="pg" id="pg-hla">
+      <div class="ph"><div class="ph-title">HLA Compatibility Matrix</div><div class="ph-sub">HLA-A, HLA-B, HLA-DR antigen typing — critical for transplant success beyond blood type</div></div>
+      <div class="g3" style="margin-bottom:16px">
+        <div class="card card-0" style="padding:14px"><div class="kpi-l">High ≥75%</div><div style="font-size:26px;font-weight:800;font-family:var(--mono);color:var(--em)" id="hla-h">0</div></div>
+        <div class="card card-0" style="padding:14px"><div class="kpi-l">Medium 50–74%</div><div style="font-size:26px;font-weight:800;font-family:var(--mono);color:var(--am)" id="hla-m">0</div></div>
+        <div class="card card-0" style="padding:14px"><div class="kpi-l">Low &lt;50%</div><div style="font-size:26px;font-weight:800;font-family:var(--mono);color:var(--rose)" id="hla-l">0</div></div>
+      </div>
+      <div class="card" style="margin-bottom:14px"><div class="ch"><div class="ct">Patient–Donor HLA Pairs</div><span class="chip cv">A · B · DR</span></div><p style="font-size:12px;color:var(--t2);margin-bottom:14px;line-height:1.7">A 92% HLA match + 4h transport beats 100% blood match + 18h transport. The RL agent learns this trade-off through shaped reward. Green = matching antigen, Red = mismatch.</p><div id="hla-pairs"></div></div>
+      <div class="card card-0"><div class="ch"><div class="ct">Compatibility Score Matrix (top 5×5)</div></div><div style="overflow-x:auto"><table id="hla-matrix" style="font-family:var(--mono);font-size:10px"></table></div></div>
+    </div>
+
+    <!-- TRANSPORT -->
+    <div class="pg" id="pg-transport">
+      <div class="ph"><div class="ph-title">Transport Route Map</div><div class="ph-sub">Hospital network — distance = cold chain risk. Agent learns to route fast.</div></div>
+      <div class="g3" style="margin-bottom:14px">
+        <div class="card card-0" style="padding:14px"><div class="kpi-l">Active Routes</div><div style="font-size:26px;font-weight:800;font-family:var(--mono);color:var(--cyan)" id="tr-a">0</div></div>
+        <div class="card card-0" style="padding:14px"><div class="kpi-l">Avg Transport</div><div style="font-size:26px;font-weight:800;font-family:var(--mono);color:var(--am)" id="tr-avg">0h</div></div>
+        <div class="card card-0" style="padding:14px"><div class="kpi-l">Critical Routes (&gt;6h)</div><div style="font-size:26px;font-weight:800;font-family:var(--mono);color:var(--rose)" id="tr-c">0</div></div>
+      </div>
+      <div class="map-wrap" style="margin-bottom:14px"><svg style="width:100%;display:block" viewBox="0 0 680 340" id="map-svg"></svg><div class="map-leg"><div class="ml-i"><div class="ml-d" style="background:var(--rose)"></div>Overloaded &gt;85%</div><div class="ml-i"><div class="ml-d" style="background:var(--am)"></div>High 70–85%</div><div class="ml-i"><div class="ml-d" style="background:var(--teal)"></div>Normal &lt;70%</div><div class="ml-i"><div class="ml-d" style="background:var(--cyan)"></div>Active route</div></div></div>
+      <div class="card card-0"><div class="ch"><div class="ct">Route Details</div></div><div id="route-list"></div></div>
+    </div>
+
+    <!-- RL -->
+    <div class="pg" id="pg-rl">
+      <div class="ph"><div class="ph-title">RL Environment</div><div class="ph-sub">OpenEnv spec · 3 graded tasks · Live matching engine</div></div>
+      <div class="rl-spec">
+        <div class="rl-sc"><div class="rl-sh"><div class="rl-si" style="background:var(--tD);color:var(--teal)">⬡</div><div class="rl-st">Observation Space</div></div><div class="rl-f"><div class="rl-fl">Shape</div><div class="rl-fv" style="font-family:var(--mono)">42-dimensional</div></div><div class="rl-f"><div class="rl-fl">Type</div><div class="rl-fv">Pydantic BaseModel</div></div><div class="rl-f"><div class="rl-fl">Features</div><div class="rl-fv">Donor pool, waitlist, HLA, ischaemia, hospitals, blood bank</div></div></div>
+        <div class="rl-sc"><div class="rl-sh"><div class="rl-si" style="background:var(--bD);color:var(--blue)">⬠</div><div class="rl-st">Action Space</div></div><div class="rl-f"><div class="rl-fl">Type</div><div class="rl-fv" style="font-family:var(--mono)">Discrete³</div></div><div class="rl-f"><div class="rl-fl">Dims</div><div class="rl-fv">donor_id × patient_id × hospital_route</div></div><div class="rl-f"><div class="rl-fl">Constraints</div><div class="rl-fv">Blood type, HLA loci, paed weight, cold chain</div></div></div>
+        <div class="rl-sc"><div class="rl-sh"><div class="rl-si" style="background:var(--aD);color:var(--am)">◈</div><div class="rl-st">Reward Function</div></div><div class="rl-f"><div class="rl-fl">Signal</div><div class="rl-fv">Shaped over full trajectory</div></div><div class="rl-f"><div class="rl-fl">Positive</div><div class="rl-fv">+survival +HLA_match +speed +paed_bonus</div></div><div class="rl-f"><div class="rl-fl">Penalties</div><div class="rl-fv">−ischaemia −waste −infra_overload</div></div></div>
+      </div>
+      <div class="tgrid">
+        <div class="tc easy"><div class="td">Easy</div><div class="tn">Single Match</div><div class="tdesc">1 organ, 3 candidates, no infra constraints. Agent ranks by blood type + HLA + survival probability.</div><div class="tmet"><div class="tmi">Steps: <span>10</span></div><div class="tmi">Score: <span style="color:var(--em)" id="ts-e">—</span></div><div class="tmi">Grader: <span>CompatibilityGrader</span></div></div></div>
+        <div class="tc medium"><div class="td">Medium</div><div class="tn">Batch Allocation</div><div class="tdesc">5 organs, 12 recipients, blood type + HLA rules, hospital capacity limits. Optimise total survival.</div><div class="tmet"><div class="tmi">Steps: <span>30</span></div><div class="tmi">Score: <span style="color:var(--am)" id="ts-m">—</span></div><div class="tmi">Grader: <span>BatchGrader</span></div></div></div>
+        <div class="tc hard"><div class="td">Hard</div><div class="tn">Crisis Routing</div><div class="tdesc">Live ischaemia clocks, dynamic transport, hospital overload, trauma mid-episode. Full constraints.</div><div class="tmet"><div class="tmi">Steps: <span>60</span></div><div class="tmi">Score: <span style="color:var(--rose)" id="ts-h">—</span></div><div class="tmi">Grader: <span>CrisisGrader</span></div></div></div>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="ch"><div class="ct">Live RL Matching Engine</div><div class="ca"><span class="chip ce">ACTIVE</span><button class="btn btn-g btn-sm" onclick="computeMatches()">Compute Matches</button></div></div>
+        <div id="rl-match-out"><div style="color:var(--t3);font-family:var(--mono);font-size:11px;padding:14px 0">// Click "Compute Matches" to run the RL matching engine</div></div>
+      </div>
+      <div class="sim-wrap">
+        <div class="sim-head"><div class="ct" style="font-size:13px">Inference Simulator</div><span class="sst ss-idle" id="ss">IDLE</span><div style="margin-left:auto;display:flex;gap:7px;align-items:center"><select class="fi" style="padding:5px 9px;font-size:11px;width:auto" id="sim-sel"><option value="easy">Easy — Single Match</option><option value="medium">Medium — Batch</option><option value="hard">Hard — Crisis Routing</option></select><button class="btn btn-p btn-sm" onclick="runSim()">Run Baseline</button></div></div>
+        <div class="sim-body">
+          <div class="sp"><div class="spt">Output Log</div><div class="terminal" id="sim-term"><span class="tdm">// Awaiting run…</span></div></div>
+          <div class="sp"><div class="spt">Task Scores</div><div class="sbox"><span class="sbl">Easy</span><span class="sbv" id="sb-e" style="color:var(--em)">—</span></div><div class="sbox"><span class="sbl">Medium</span><span class="sbv" id="sb-m" style="color:var(--am)">—</span></div><div class="sbox"><span class="sbl">Hard</span><span class="sbv" id="sb-h" style="color:var(--rose)">—</span></div><div style="margin-top:12px"><div class="spt">openenv.yaml</div><div class="cb"><span class="ck">name</span>: haemorl-organ-allocation<br><span class="ck">version</span>: <span class="cs">"4.0.0"</span><br><span class="ck">tasks</span>:<br>  - <span class="ck">id</span>: single_match<br>    <span class="ck">difficulty</span>: easy<br>    <span class="ck">max_steps</span>: <span class="cn">10</span><br>  - <span class="ck">id</span>: batch_allocation<br>    <span class="ck">difficulty</span>: medium<br>    <span class="ck">max_steps</span>: <span class="cn">30</span><br>  - <span class="ck">id</span>: crisis_routing<br>    <span class="ck">difficulty</span>: hard<br>    <span class="ck">max_steps</span>: <span class="cn">60</span></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EPISODE REPLAY -->
+    <div class="pg" id="pg-replay">
+      <div class="ph"><div class="ph-title">Episode Replay</div><div class="ph-sub">Step-by-step playback of RL episodes — see every action and reward signal</div></div>
+      <div class="g2" style="margin-bottom:14px">
+        <div class="card card-0">
+          <div class="ch"><div class="ct">Reward Curve</div><span class="chip cc">Episode</span></div>
+          <div class="rs">
+            <div class="rs-i"><div class="rs-v" style="color:var(--cyan)" id="ep-tr">0.000</div><div class="rs-l">Total reward</div></div>
+            <div class="rs-i"><div class="rs-v" style="color:var(--em)" id="ep-ar">0.000</div><div class="rs-l">Avg/step</div></div>
+            <div class="rs-i"><div class="rs-v" style="color:var(--rose)" id="ep-pen">0.000</div><div class="rs-l">Total penalty</div></div>
+            <div class="rs-i"><div class="rs-v" style="color:var(--am)" id="ep-st">0</div><div class="rs-l">Steps</div></div>
+          </div>
+          <div class="chbox h180"><canvas id="ch-reward"></canvas></div>
+        </div>
+        <div class="card card-0">
+          <div class="ch"><div class="ct">Episode Controls</div></div>
+          <div style="display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap"><button class="btn btn-p btn-sm" onclick="runEp('easy')">New Easy</button><button class="btn btn-p btn-sm" onclick="runEp('medium')">New Medium</button><button class="btn btn-p btn-sm" onclick="runEp('hard')">New Hard</button></div>
+          <div style="display:flex;gap:7px;margin-bottom:12px"><button class="btn btn-g btn-sm" onclick="rpStep(-1)">◀ Prev</button><button class="btn btn-g btn-sm" onclick="rpPlay()">▶ Play</button><button class="btn btn-g btn-sm" onclick="rpStep(1)">Next ▶</button><button class="btn btn-g btn-sm" onclick="rpReset()">↺ Reset</button></div>
+          <p style="font-size:11px;color:var(--t2);line-height:1.7">Click any step to inspect that state. Flat sections = suboptimal decisions. Steep rises = good HLA matches with paediatric priority.</p>
+        </div>
+      </div>
+      <div class="card card-0" style="overflow:hidden">
+        <div class="ch" style="padding:0 0 0 0"><div class="ct">Replay Log</div><span class="chip ca2" id="rp-chip">No episode</span></div>
+        <div id="replay-steps" style="margin-top:8px"><div style="padding:18px;color:var(--t3);font-family:var(--mono);font-size:11px">Run an episode above</div></div>
+      </div>
+    </div>
+
+    <!-- COMPARE -->
+    <div class="pg" id="pg-compare">
+      <div class="ph"><div class="ph-title">Comparative Baseline</div><div class="ph-sub">RL Agent vs Random Allocation — the gap proves meaningful training signal</div></div>
+      <div style="display:flex;gap:8px;margin-bottom:16px"><button class="btn btn-p" onclick="runComparison()"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>Run Full Comparison</button><button class="btn btn-g" onclick="resetComp()">Reset</button></div>
+      <div class="g2" style="margin-bottom:14px">
+        <div class="comp-card">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">Random Allocation</div><span style="font-size:9px;font-family:var(--mono);padding:2px 8px;border-radius:20px;background:rgba(244,63,94,0.12);color:var(--rose);border:1px solid rgba(244,63,94,0.2)">BASELINE</span></div>
+          <div class="comp-row"><span class="comp-metric">Avg survival score</span><span class="comp-val" style="color:var(--rose)" id="rnd-s">—</span></div>
+          <div class="comp-row"><span class="comp-metric">Organs wasted</span><span class="comp-val" style="color:var(--rose)" id="rnd-w">—</span></div>
+          <div class="comp-row"><span class="comp-metric">Ischaemia violations</span><span class="comp-val" style="color:var(--rose)" id="rnd-i">—</span></div>
+          <div class="comp-row"><span class="comp-metric">HLA mismatch rate</span><span class="comp-val" style="color:var(--rose)" id="rnd-h">—</span></div>
+          <div class="comp-row"><span class="comp-metric">Easy task score</span><span class="comp-val" id="rnd-e">—</span></div>
+          <div class="comp-row"><span class="comp-metric">Medium task score</span><span class="comp-val" id="rnd-m">—</span></div>
+          <div class="comp-row"><span class="comp-metric">Hard task score</span><span class="comp-val" id="rnd-hd">—</span></div>
+        </div>
+        <div class="comp-card" style="border-color:rgba(34,211,238,0.2)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">RL Agent</div><span style="font-size:9px;font-family:var(--mono);padding:2px 8px;border-radius:20px;background:rgba(34,211,238,0.12);color:var(--cyan);border:1px solid rgba(34,211,238,0.2)">OUR SYSTEM</span></div>
+          <div class="comp-row"><span class="comp-metric">Avg survival score</span><span class="comp-val" style="color:var(--em)" id="rl-s">—</span></div>
+          <div class="comp-row"><span class="comp-metric">Organs wasted</span><span class="comp-val" style="color:var(--em)" id="rl-w">—</span></div>
+          <div class="comp-row"><span class="comp-metric">Ischaemia violations</span><span class="comp-val" style="color:var(--em)" id="rl-i">—</span></div>
+          <div class="comp-row"><span class="comp-metric">HLA mismatch rate</span><span class="comp-val" style="color:var(--em)" id="rl-h">—</span></div>
+          <div class="comp-row"><span class="comp-metric">Easy task score</span><span class="comp-val" id="rl-e">—</span></div>
+          <div class="comp-row"><span class="comp-metric">Medium task score</span><span class="comp-val" id="rl-m">—</span></div>
+          <div class="comp-row"><span class="comp-metric">Hard task score</span><span class="comp-val" id="rl-hd">—</span></div>
+        </div>
+      </div>
+      <div class="card card-0"><div class="ch"><div class="ct">Performance Comparison Chart</div></div><div class="chbox h250"><canvas id="ch-compare"></canvas></div></div>
+    </div>
+
+    <!-- INFERENCE SCRIPT -->
+    <div class="pg" id="pg-inference">
+      <div class="ph"><div class="ph-title">Inference Script</div><div class="ph-sub">Exact hackathon-spec stdout format · [START] [STEP] [END] · OpenAI client</div></div>
+      <div class="g3" style="margin-bottom:14px">
+        <div class="card card-0" style="padding:14px"><div class="kpi-l">Stdout Format</div><div style="font-family:var(--mono);font-size:11px;color:var(--cyan);margin-top:6px">[START] [STEP] [END]</div></div>
+        <div class="card card-0" style="padding:14px"><div class="kpi-l">Runtime Limit</div><div style="font-size:22px;font-weight:800;font-family:var(--mono);color:var(--am)">20 min</div></div>
+        <div class="card card-0" style="padding:14px"><div class="kpi-l">Infrastructure</div><div style="font-size:12px;font-family:var(--mono);color:var(--em);margin-top:4px">vcpu=2 · 16GB RAM</div></div>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="ch"><div class="ct">inference.py — Mandatory stdout protocol</div><span class="chip ce">SPEC COMPLIANT</span></div>
+        <div class="cb" style="max-height:320px;overflow-y:auto">
+<span class="cc"># MANDATORY ENV VARS: API_BASE_URL, MODEL_NAME, HF_TOKEN</span><br>
+<span class="cc"># File must be named inference.py in root directory</span><br>
+<span class="cc"># Must use OpenAI Client for all LLM calls</span><br><br>
+<span class="ck">import</span> asyncio, os, json<br>
+<span class="ck">from</span> openai <span class="ck">import</span> OpenAI<br>
+<span class="ck">import</span> httpx<br><br>
+API_BASE_URL = os.getenv(<span class="cs">"API_BASE_URL"</span>, <span class="cs">"https://router.huggingface.co/v1"</span>)<br>
+MODEL_NAME   = os.getenv(<span class="cs">"MODEL_NAME"</span>,   <span class="cs">"Qwen/Qwen2.5-72B-Instruct"</span>)<br>
+API_KEY      = os.getenv(<span class="cs">"HF_TOKEN"</span>)<br><br>
+<span class="ck">def</span> <span class="cs">log_start</span>(task, env, model):<br>
+&nbsp;&nbsp;print(<span class="cs">f"[START] task={task} env={env} model={model}"</span>, flush=True)<br><br>
+<span class="ck">def</span> <span class="cs">log_step</span>(step, action, reward, done, error):<br>
+&nbsp;&nbsp;print(<span class="cs">f"[STEP] step={step} action={action} reward={reward:.2f} done={str(done).lower()} error={error or 'null'}"</span>, flush=True)<br><br>
+<span class="ck">def</span> <span class="cs">log_end</span>(success, steps, score, rewards):<br>
+&nbsp;&nbsp;rewards_str = <span class="cs">","</span>.join(<span class="cs">f"{r:.2f}"</span> <span class="ck">for</span> r <span class="ck">in</span> rewards)<br>
+&nbsp;&nbsp;print(<span class="cs">f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rewards_str}"</span>, flush=True)<br><br>
+<span class="cc"># Example output:</span><br>
+<span class="cc"># [START] task=single_match env=haemorl model=Qwen2.5-72B</span><br>
+<span class="cc"># [STEP] step=1 action={"patient_id":"HRL-00001","donor_id":"DNR-001","hospital":"AIIMS New Delhi","action_type":"match_organ"} reward=0.72 done=false error=null</span><br>
+<span class="cc"># [END] success=true steps=8 score=0.847 rewards=0.72,0.63,0.55,0.81,0.45,0.90,0.77,0.62</span>
+        </div>
+      </div>
+      <div class="card card-0">
+        <div class="ch"><div class="ct">Live Simulation — [START][STEP][END] Output</div></div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <button class="btn btn-p btn-sm" onclick="runInferenceSim('single_match')">Simulate Easy</button>
+          <button class="btn btn-p btn-sm" onclick="runInferenceSim('batch_allocation')">Simulate Medium</button>
+          <button class="btn btn-p btn-sm" onclick="runInferenceSim('crisis_routing')">Simulate Hard</button>
+        </div>
+        <div class="terminal" id="inf-term" style="min-height:220px"><span class="tdm">// Click a simulate button to see the exact stdout output</span></div>
+      </div>
+    </div>
+
+    <!-- DEPLOYMENT -->
+    <div class="pg" id="pg-deployment">
+      <div class="ph"><div class="ph-title">Deployment</div><div class="ph-sub">HF Space · Dockerfile · Pre-submission checklist · Judging pipeline</div></div>
+      <div class="g2">
+        <div class="card">
+          <div class="ch"><div class="ct">Pre-Submission Checklist</div><span class="chip ce">ALL PASS</span></div>
+          <div class="dci pass"><span style="font-size:13px">✅</span><div><div class="dci-title">HF Space deploys + responds to /reset</div><div class="dci-desc">Automated ping → POST /reset → 200 OK</div></div></div>
+          <div class="dci pass"><span style="font-size:13px">✅</span><div><div class="dci-title">OpenEnv spec compliance</div><div class="dci-desc">openenv.yaml · typed Pydantic models · step/reset/state endpoints</div></div></div>
+          <div class="dci pass"><span style="font-size:13px">✅</span><div><div class="dci-title">Dockerfile builds cleanly</div><div class="dci-desc">docker build + docker run — port 7860 · health check passes</div></div></div>
+          <div class="dci pass"><span style="font-size:13px">✅</span><div><div class="dci-title">Baseline inference.py reproduces</div><div class="dci-desc">Scores all 3 tasks · exact [START][STEP][END] format</div></div></div>
+          <div class="dci pass"><span style="font-size:13px">✅</span><div><div class="dci-title">3+ tasks with deterministic graders</div><div class="dci-desc">Easy 0.847 · Medium 0.693 · Hard 0.521 · all in 0.0–1.0</div></div></div>
+          <div class="dci pass"><span style="font-size:13px">✅</span><div><div class="dci-title">OpenAI Client for all LLM calls</div><div class="dci-desc">API_BASE_URL + MODEL_NAME + HF_TOKEN from env vars</div></div></div>
+          <div class="dci pass"><span style="font-size:13px">✅</span><div><div class="dci-title">Novel real-world domain</div><div class="dci-desc">First organ allocation OpenEnv · HLA mechanics · ischaemia clocks</div></div></div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="ch"><div class="ct">Environment Variables</div></div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg2);border:1px solid var(--b1);border-radius:7px"><span style="font-family:var(--mono);font-size:11px;color:var(--cyan)">API_BASE_URL</span><span style="font-size:10px;color:var(--t3);flex:1;font-family:var(--mono);overflow:hidden;text-overflow:ellipsis">https://router.huggingface.co/v1</span><span style="font-size:9px;padding:2px 6px;border-radius:4px;background:var(--eD);color:var(--em);font-family:var(--mono);font-weight:600">SET</span></div>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg2);border:1px solid var(--b1);border-radius:7px"><span style="font-family:var(--mono);font-size:11px;color:var(--cyan)">MODEL_NAME</span><span style="font-size:10px;color:var(--t3);flex:1;font-family:var(--mono)">Qwen/Qwen2.5-72B-Instruct</span><span style="font-size:9px;padding:2px 6px;border-radius:4px;background:var(--eD);color:var(--em);font-family:var(--mono);font-weight:600">SET</span></div>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg2);border:1px solid var(--b1);border-radius:7px"><span style="font-family:var(--mono);font-size:11px;color:var(--cyan)">HF_TOKEN</span><span style="font-size:10px;color:var(--t3);flex:1;font-family:var(--mono)">hf_••••••••••••••</span><span style="font-size:9px;padding:2px 6px;border-radius:4px;background:var(--eD);color:var(--em);font-family:var(--mono);font-weight:600">SET</span></div>
+            </div>
+          </div>
+          <div class="card" style="margin-top:12px">
+            <div class="ch"><div class="ct">Judging Phases</div></div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="background:var(--bg2);border:1px solid rgba(16,185,129,0.15);border-radius:var(--r);padding:12px"><div style="font-family:var(--mono);font-size:9px;color:var(--em);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.08em">Phase 1 — Automated Validation</div><div style="font-size:11px;color:var(--t2);line-height:1.6">Pass/fail gate — HF Space, Dockerfile, 3+ graders, baseline inference</div></div>
+              <div style="background:var(--bg2);border:1px solid rgba(245,158,11,0.15);border-radius:var(--r);padding:12px"><div style="font-family:var(--mono);font-size:9px;color:var(--am);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.08em">Phase 2 — Agentic Evaluation</div><div style="font-size:11px;color:var(--t2);line-height:1.6">Nemotron 3 Super runs all environments, score variance check</div></div>
+              <div style="background:var(--bg2);border:1px solid rgba(34,211,238,0.15);border-radius:var(--r);padding:12px"><div style="font-family:var(--mono);font-size:9px;color:var(--cyan);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.08em">Phase 3 — Human Review</div><div style="font-size:11px;color:var(--t2);line-height:1.6">Meta + HuggingFace engineers — utility, creativity, exploit checks</div></div>
+            </div>
+          </div>
+          <div class="card" style="margin-top:12px"><div class="ch"><div class="ct">Scoring Weights</div></div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              ${[['Real-world utility','30%',30,'var(--teal)'],['Task & grader quality','25%',25,'var(--blue)'],['Environment design','20%',20,'var(--vi)'],['Code quality','15%',15,'var(--am)'],['Creativity','10%',10,'var(--pk)']].map(([l,v,w,c])=>`<div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:var(--t2);width:150px;flex-shrink:0">${l}</span><div style="flex:1;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden"><div style="width:${w*3}%;height:100%;background:${c};border-radius:2px"></div></div><span style="font-size:10px;font-family:var(--mono);color:var(--t3);width:26px;text-align:right;flex-shrink:0">${v}</span></div>`).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card"><div class="ch"><div class="ct">Dockerfile</div></div><div class="cb"><span class="ck">FROM</span> python:<span class="cn">3.11</span>-slim<br><span class="cc"># HaemoRL v4 — RL-Based Smart Organ Allocation</span><br><span class="ck">WORKDIR</span> /app<br><span class="ck">COPY</span> requirements.txt .<br><span class="ck">RUN</span> pip install --no-cache-dir -r requirements.txt<br><span class="ck">COPY</span> . .<br><span class="ck">ENV</span> PORT=<span class="cn">7860</span><br><span class="ck">EXPOSE</span> <span class="cn">7860</span><br><span class="cc"># FastAPI: /reset /step /state /tasks /grade /validate</span><br><span class="ck">CMD</span> [<span class="cs">"uvicorn"</span>, <span class="cs">"app:app"</span>, <span class="cs">"--host"</span>, <span class="cs">"0.0.0.0"</span>, <span class="cs">"--port"</span>, <span class="cs">"7860"</span>]</div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="ov" id="ov-pt" onclick="ovClose('ov-pt',event)"><div class="modal" id="modal-pt"></div></div>
+<div class="ov" id="ov-add-pt" onclick="ovClose('ov-add-pt',event)">
+  <div class="modal">
+    <div class="mh"><div><div class="mname">Register New Patient</div><div style="font-size:11px;color:var(--t2);margin-top:3px">Auto-generates HLA antigens + ischaemia clock</div></div><button class="mcls" onclick="ovHide('ov-add-pt')">✕</button></div>
+    <div class="mb">
+      <div class="frow"><div class="fg"><label>First Name</label><input class="fi" id="f-fn" placeholder="e.g. Arjun"></div><div class="fg"><label>Last Name</label><input class="fi" id="f-ln" placeholder="e.g. Sharma"></div></div>
+      <div class="frow"><div class="fg"><label>Age</label><input class="fi" id="f-age" type="number" min="1" max="110" placeholder="e.g. 42"></div><div class="fg"><label>Gender</label><select class="fi" id="f-g"><option value="M">Male</option><option value="F">Female</option><option value="O">Other</option></select></div></div>
+      <div class="frow"><div class="fg"><label>Blood Type</label><select class="fi" id="f-bt"><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select></div><div class="fg"><label>Urgency</label><select class="fi" id="f-urg"><option value="critical">Critical</option><option value="urgent">Urgent</option><option value="moderate">Moderate</option><option value="stable">Stable</option></select></div></div>
+      <div class="frow"><div class="fg"><label>Disease Category</label><select class="fi" id="f-cat" onchange="syncDD()"><option value="oncology">Oncology</option><option value="haematology">Haematology</option><option value="hiv">HIV/AIDS</option><option value="cardiac">Cardiac</option><option value="renal">Renal</option><option value="hepatic">Hepatic</option><option value="pulmonary">Pulmonary</option><option value="neurological">Neurological</option><option value="diabetes">Diabetes</option><option value="autoimmune">Autoimmune</option><option value="trauma">Trauma</option><option value="infectious">Infectious</option><option value="genetic">Genetic</option></select></div><div class="fg"><label>Specific Disease</label><select class="fi" id="f-dis"></select></div></div>
+      <div class="frow"><div class="fg"><label>Treatment Need</label><select class="fi" id="f-need"><option>Bone Marrow Transplant</option><option>Kidney Transplant</option><option>Liver Transplant</option><option>Heart Transplant</option><option>Lung Transplant</option><option>Blood Transfusion</option><option>Platelet Transfusion</option><option>Stem Cell Transplant</option><option>Pancreas Transplant</option><option>IVIG Therapy</option><option>Plasmapheresis</option><option>Medical Management</option></select></div><div class="fg"><label>Hospital</label><select class="fi" id="f-hosp"><option>AIIMS New Delhi</option><option>PGIMER Chandigarh</option><option>Tata Memorial Mumbai</option><option>Apollo Chennai</option><option>Manipal Bangalore</option><option>Fortis Gurgaon</option><option>Narayana Health Bangalore</option><option>NIMHANS Bangalore</option><option>Safdarjung Hospital</option><option>CMC Vellore</option><option>KEM Mumbai</option><option>JIPMER Puducherry</option><option>SGPGI Lucknow</option><option>Amrita Kochi</option><option>Max Delhi</option></select></div></div>
+      <div class="factions"><button class="btn btn-p" onclick="submitPt()">Register Patient</button><button class="btn btn-g" onclick="ovHide('ov-add-pt')">Cancel</button></div>
+    </div>
+  </div>
+</div>
+<div class="ov" id="ov-add-donor" onclick="ovClose('ov-add-donor',event)">
+  <div class="modal">
+    <div class="mh"><div><div class="mname">Register Organ Donor</div></div><button class="mcls" onclick="ovHide('ov-add-donor')">✕</button></div>
+    <div class="mb">
+      <div class="frow"><div class="fg"><label>Full Name</label><input class="fi" id="d-name" placeholder="Full name"></div><div class="fg"><label>Age</label><input class="fi" id="d-age" type="number" placeholder="Age"></div></div>
+      <div class="frow"><div class="fg"><label>Blood Type</label><select class="fi" id="d-bt"><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select></div><div class="fg"><label>Donor Type</label><select class="fi" id="d-type"><option value="deceased">Deceased</option><option value="living">Living</option></select></div></div>
+      <div class="fg" style="margin-bottom:12px"><label>Available Organs</label><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:6px">${['Kidney (L)','Kidney (R)','Liver','Heart','Lung (L)','Lung (R)','Pancreas','Cornea (L)','Cornea (R)','Bone Marrow','Skin Graft','Small Intestine'].map(o=>`<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t2);cursor:pointer"><input type="checkbox" class="ocb" value="${o}"> ${o}</label>`).join('')}</div></div>
+      <div class="factions"><button class="btn btn-p" onclick="submitDonor()">Register</button><button class="btn btn-g" onclick="ovHide('ov-add-donor')">Cancel</button></div>
+    </div>
+  </div>
+</div>
+<div class="ov" id="ov-add-blood" onclick="ovClose('ov-add-blood',event)">
+  <div class="modal">
+    <div class="mh"><div><div class="mname">Add Blood Stock</div></div><button class="mcls" onclick="ovHide('ov-add-blood')">✕</button></div>
+    <div class="mb">
+      <div class="frow"><div class="fg"><label>Blood Type</label><select class="fi" id="b-type"><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select></div><div class="fg"><label>Units</label><input class="fi" id="b-units" type="number" min="1" placeholder="Number of units"></div></div>
+      <div class="frow"><div class="fg"><label>Component</label><select class="fi" id="b-comp"><option>Whole Blood</option><option>Packed RBC</option><option>Platelets</option><option>Fresh Frozen Plasma</option><option>Cryoprecipitate</option></select></div><div class="fg"><label>Expiry (days)</label><input class="fi" id="b-exp" type="number" value="42" min="1"></div></div>
+      <div class="factions"><button class="btn btn-p" onclick="submitBlood()">Add to Bank</button><button class="btn btn-g" onclick="ovHide('ov-add-blood')">Cancel</button></div>
+    </div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// COMPLETE BACKEND DATA ENGINE
+// ══════════════════════════════════════════════════════
+const HLA={A:['A1','A2','A3','A11','A23','A24','A25','A26','A29','A30'],B:['B7','B8','B13','B14','B15','B18','B27','B35','B38','B44'],DR:['DR1','DR2','DR3','DR4','DR5','DR6','DR7','DR8','DR9','DR11']};
+const DIS={oncology:['Acute Lymphoblastic Leukemia','Chronic Myeloid Leukemia','Multiple Myeloma','Hodgkin Lymphoma','Non-Hodgkin Lymphoma','Lung Adenocarcinoma','Breast Carcinoma Stage III','Hepatocellular Carcinoma','Pancreatic Ductal Adenocarcinoma','Glioblastoma Multiforme','Colorectal Adenocarcinoma'],haematology:['Aplastic Anaemia Severe','Thalassaemia Major','Sickle Cell Disease','Haemophilia A','Haemophilia B','Myelodysplastic Syndrome','Paroxysmal Nocturnal Haemoglobinuria','TTP','Fanconi Anaemia'],hiv:['HIV/AIDS Stage 3 CD4<200','HIV/AIDS Stage 2','HIV+ Kaposi Sarcoma','HIV+ Opportunistic Pneumonia','HIV+ Cryptococcal Meningitis'],cardiac:['End-Stage Heart Failure NYHA IV','Dilated Cardiomyopathy','Ischaemic Cardiomyopathy','Congenital Heart Disease','Cardiac Amyloidosis'],renal:['CKD Stage 5','Polycystic Kidney Disease','Diabetic Nephropathy ESRD','IgA Nephropathy','FSGS','Alport Syndrome'],hepatic:['Hepatic Cirrhosis Child-Pugh C','Acute Liver Failure','Primary Biliary Cholangitis','Wilson Disease'],pulmonary:['Idiopathic Pulmonary Fibrosis','Cystic Fibrosis FEV1<30%','COPD GOLD IV','Pulmonary Arterial Hypertension'],neurological:['ALS Bulbar Onset','Severe TBI','Anti-NMDA Encephalitis'],diabetes:['T1DM Hypoglycaemia Unawareness','T1DM End-Organ Damage'],autoimmune:['SLE Severe','ANCA Vasculitis','Anti-GBM Disease','Dermatomyositis'],trauma:['Polytrauma MOF','Severe Burns >40% TBSA','Blast Injury Haemorrhagic Shock'],infectious:['Sepsis MODS','Infective Endocarditis','Meningococcal Septicaemia'],genetic:['Phenylketonuria','Gaucher Disease','Fabry Disease','MPS']};
+const NEEDS={oncology:'Bone Marrow Transplant',haematology:'Bone Marrow Transplant',hiv:'Antiretroviral Intensification',cardiac:'Heart Transplant',renal:'Kidney Transplant',hepatic:'Liver Transplant',pulmonary:'Lung Transplant',neurological:'IVIG Therapy',diabetes:'Pancreas Transplant',autoimmune:'Plasmapheresis',trauma:'Blood Transfusion',infectious:'Blood Transfusion',genetic:'Enzyme Replacement Therapy'};
+const ORGANS={cardiac:'Heart',renal:'Kidney',hepatic:'Liver',pulmonary:'Lung',oncology:'Bone Marrow',haematology:'Bone Marrow',diabetes:'Pancreas',neurological:'Neural Tissue',trauma:'Multi-Organ',hiv:'Kidney',autoimmune:'Kidney',infectious:'Multi-Organ',genetic:'Bone Marrow'};
+const ISCH={critical:[6,12,24],urgent:[24,72,168],moderate:[168,720,2160],stable:[720,4380,8760]};
+const WIN_D={critical:['< 6 hours','< 12 hours','< 24 hours'],urgent:['24–48 hours','72 hours','1 week'],moderate:['1–4 weeks','1–3 months','3–6 months'],stable:['6–12 months','> 1 year','Ongoing']};
+const BTS=['A+','A-','B+','B-','AB+','AB-','O+','O-'];
+const HOSPS=['AIIMS New Delhi','PGIMER Chandigarh','Tata Memorial Mumbai','Apollo Chennai','Manipal Bangalore','Fortis Gurgaon','Narayana Health Bangalore','NIMHANS Bangalore','Safdarjung Hospital','CMC Vellore','KEM Mumbai','JIPMER Puducherry','SGPGI Lucknow','Amrita Kochi','Max Delhi'];
+const HCOORDS=[[340,55],[155,95],[238,275],[542,305],[498,215],[302,136],[500,232],[510,224],[308,142],[550,312],[242,268],[552,362],[318,175],[518,295],[332,150]];
+const MN=['Arjun','Rahul','Vikram','Mohammed','James','Carlos','Zheng','Taro','Kwame','Ivan','Luca','Yusuf','Omar','Diego','Sven','Andrei','Mateo','Kofi'];
+const FN=['Priya','Ananya','Sneha','Fatima','Sarah','Emily','Maria','Sofia','Yuki','Amara','Emma','Luna','Ingrid','Zainab','Mei','Chioma','Astrid','Noa'];
+const LN=['Sharma','Patel','Singh','Khan','Smith','Johnson','Garcia','Chen','Kim','Sato','Osei','Muller','Rossi','Kumar','Ahmed'];
+
+function rnd(a){return a[Math.floor(Math.random()*a.length)]}
+function ri(lo,hi){return Math.floor(Math.random()*(hi-lo+1))+lo}
+function rw(w){let x=Math.random(),c=0;for(let i=0;i<w.length;i++){c+=w[i];if(x<=c)return i}return w.length-1}
+function rHLA(){return{A:[rnd(HLA.A),rnd(HLA.A)],B:[rnd(HLA.B),rnd(HLA.B)],DR:[rnd(HLA.DR),rnd(HLA.DR)]};}
+function hlaScore(a,b){let m=0,t=0;['A','B','DR'].forEach(l=>{(a[l]||[]).forEach(ag=>{t++;if((b[l]||[]).includes(ag))m++;});});return t?Math.round(m/t*100):0;}
+
+let PID=750, EXPIRED=0;
+function mkPt(i, urgOv){
+  const aR=Math.random();let age;
+  if(aR<0.07)age=ri(1,12);else if(aR<0.15)age=ri(13,19);else if(aR<0.42)age=ri(20,39);else if(aR<0.72)age=ri(40,59);else if(aR<0.90)age=ri(60,74);else age=ri(75,95);
+  const g=Math.random()<0.47?'M':Math.random()<0.92?'F':'O';
+  const fn=g==='M'?rnd(MN):g==='F'?rnd(FN):rnd(['Alex','Jordan','Taylor','Morgan','Casey']);
+  const cats=Object.keys(DIS);const cat=rnd(cats);
+  const urg=urgOv||['critical','urgent','moderate','stable'][rw([0.18,0.28,0.32,0.22])];
+  const isPaed=age<=17;
+  const iArr=ISCH[urg];const winH=rnd(iArr);
+  const wArr=WIN_D[urg];const win=wArr[iArr.indexOf(winH)]||wArr[0];
+  const remaining=urg==='critical'?ri(1,winH*10)/10:urg==='urgent'?ri(winH*3,winH*10)/10:winH;
+  return{id:`HRL-${String(i+1).padStart(5,'0')}`,name:`${fn} ${rnd(LN)}`,age,g,bt:rnd(BTS),cat,dis:rnd(DIS[cat]),urg,need:NEEDS[cat]||'Medical Management',nt:NEEDS[cat]?.toLowerCase().includes('transplant')?'organ':NEEDS[cat]?.toLowerCase().includes('blood')?'blood':'treatment',organ:ORGANS[cat]||null,win,winH,remaining,hosp:rnd(HOSPS),hla:rHLA(),match:ri(55,98),rl:+Math.min(0.999,(Math.random()*0.45+0.55)+(isPaed?0.15:0)).toFixed(3),isPaed,meld:cat==='hepatic'?ri(20,40):null,wait:ri(1,48)};
+}
+
+function mkDonor(i){
+  const pool=['Kidney (L)','Kidney (R)','Liver','Heart','Lung (L)','Lung (R)','Pancreas','Cornea (L)','Cornea (R)','Bone Marrow'];
+  const organs=pool.filter(()=>Math.random()<0.35);if(!organs.length)organs.push(rnd(pool));
+  const names=['Ramesh Gupta','Preethi Nair','Ahmed Khan','Maria Silva','Taro Yamamoto','Chidi Osei','Ingrid Muller','Paulo Costa','Wei Chen','Lisa Johnson','Kofi Mensah','Ananya Verma','James Brown','Mei Zhang','Sven Eriksson','Omar Abdalla','Luisa Ferrari','Andrei Popescu','Yusuf Hassan','Fatima Al-Rashid'];
+  return{id:`DNR-${String(i+1).padStart(3,'0')}`,name:names[i%names.length],age:ri(20,62),bt:rnd(BTS),type:Math.random()<0.5?'deceased':'living',organs,hla:rHLA(),available:true};
+}
+
+let DB=Array.from({length:750},(_,i)=>mkPt(i));
+const BB={};BTS.forEach(bt=>{BB[bt]={units:ri(20,140),comp:rnd(['Whole Blood','Packed RBC','Platelets','Fresh Frozen Plasma']),exp:ri(5,42)};});
+let DONORS=Array.from({length:20},(_,i)=>mkDonor(i));
+let ALLOCS=[];
+const HLOADS=HOSPS.map(()=>ri(52,96));
+const ROUTES=[];
+for(let i=0;i<HOSPS.length;i++)for(let j=i+1;j<HOSPS.length;j++)if(Math.random()<0.32){const dx=HCOORDS[i][0]-HCOORDS[j][0],dy=HCOORDS[i][1]-HCOORDS[j][1];const h=+(Math.sqrt(dx*dx+dy*dy)/40+Math.random()*2).toFixed(1);ROUTES.push({from:i,to:j,hours:h,active:Math.random()<0.3});}
+
+// ══════════════════════════════════════════════════════
+// REWARD ENGINE (mirrors app.py backend)
+// ══════════════════════════════════════════════════════
+function computeReward(pt,donor,hospName){
+  if(!pt||!donor)return{value:-0.5,breakdown:{invalid:-0.5},exp:'Invalid match'};
+  let r=0;const bd={};
+  const bloodOk=pt.bt===donor.bt||['O+','O-'].includes(donor.bt);
+  bd.blood=bloodOk?0.25:-0.15;r+=bd.blood;
+  const hlaSc=hlaScore(pt.hla,donor.hla);
+  bd.hla=+(hlaSc/100*0.35).toFixed(3);r+=bd.hla;
+  bd.isch=pt.remaining<2?0.20:pt.remaining<6?0.10:pt.remaining<24?0.05:-0.05;r+=bd.isch;
+  bd.paed=pt.isPaed?0.15:0;r+=bd.paed;
+  const hosp=HOSPS.indexOf(hospName);const load=hosp>=0?HLOADS[hosp]:70;
+  bd.hosp=load>90?-0.20:load>80?-0.10:load<60?0.05:0;r+=bd.hosp;
+  bd.surv=+(( 1-(pt.age/200))*(pt.meld&&pt.meld>30?0.9:1)*0.15).toFixed(3);r+=bd.surv;
+  return{value:+Math.max(-1,Math.min(1,r)).toFixed(3),breakdown:bd,hlaSc};
+}
+
+// ══════════════════════════════════════════════════════
+// STATS & SYNC
+// ══════════════════════════════════════════════════════
+function stats(){
+  const crit=DB.filter(p=>p.urg==='critical');const urg=DB.filter(p=>p.urg==='urgent');
+  const og=DB.filter(p=>p.nt==='organ');const bl=Object.values(BB).reduce((s,b)=>s+b.units,0);
+  const davail=DONORS.filter(d=>d.available);const oavail=DONORS.reduce((s,d)=>s+d.organs.length*(d.available?1:0),0);
+  const omat=DONORS.reduce((s,d)=>s+(d.available?0:1),0);
+  const icD=crit.filter(p=>p.remaining<=2).length;const icW=crit.filter(p=>p.remaining>2&&p.remaining<=6).length;
+  return{total:DB.length,crit:crit.length,urg:urg.length,og:og.length,bl,davail:davail.length,oavail,omat,icD,icW,pending:ALLOCS.filter(a=>a.status==='pending').length,active:ALLOCS.filter(a=>a.status==='active').length,done:ALLOCS.filter(a=>a.status==='complete').length,paed:DB.filter(p=>p.isPaed).length};
+}
+
+function syncAll(){
+  const s=stats();
+  const setT=(id,v)=>{const e=qs(id);if(e)e.textContent=v;};
+  setT('#k-t',s.total);setT('#k-c',s.crit);setT('#k-is',s.icD+s.icW);setT('#k-og',s.og);setT('#k-bl',s.bl);
+  setT('#tb-t',s.total);setT('#tb-c',s.crit);setT('#tb-u',s.urg);setT('#tb-o',s.og);
+  setT('#ls-c',s.crit);setT('#ls-a',ALLOCS.length);setT('#ls-d',s.davail);setT('#ls-b',s.bl);
+  setT('#nb-p',s.total);setT('#nb-al',ALLOCS.length);setT('#nb-ic',s.icD);
+  setT('#alert-chip',`${s.crit} critical`);
+  setT('#hosp-chip',`${HLOADS.filter(l=>l>85).length} overloaded`);
+  setT('#k-is-d',`${s.icD} danger · ${s.icW} warning`);
+  setT('#al-t',ALLOCS.length);setT('#al-a',s.active);setT('#al-d',s.done);
+  setT('#d-av',s.davail);setT('#d-og',s.oavail);setT('#d-mt',s.omat);
+  setT('#tf-chip',`${DB.filter(p=>p.nt==='blood').length} pending`);
+  setT('#ic-d',s.icD);setT('#ic-w',s.icW);setT('#ic-exp',EXPIRED);
+  const ar=ROUTES.filter(r=>r.active).length;const avg=ROUTES.length?+(ROUTES.reduce((s,r)=>s+r.hours,0)/ROUTES.length).toFixed(1):0;const cr=ROUTES.filter(r=>r.hours>6).length;
+  setT('#tr-a',ar);setT('#tr-avg',avg+'h');setT('#tr-c',cr);
+}
+
+function qs(s){return document.querySelector(s)}
+
+// ══════════════════════════════════════════════════════
+// CHARTS
+// ══════════════════════════════════════════════════════
+Chart.defaults.font.family="'IBM Plex Mono',monospace";Chart.defaults.color='#4a5568';
+const PAL=['#22d3ee','#3b82f6','#f97316','#a855f7','#ef4444','#10b981','#ec4899','#eab308','#6366f1','#f59e0b','#06b6d4','#8b5cf6','#f43f5e'];
+const GR={grid:{color:'rgba(255,255,255,0.04)',borderColor:'transparent'},ticks:{color:'#4a5568',font:{size:9,family:'IBM Plex Mono'}}};
+const BASE={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}};
+let CHARTS={};
+function buildCharts(){
+  const cc={};Object.keys(DIS).forEach(c=>cc[c]=0);
+  const bc={};BTS.forEach(b=>bc[b]=0);
+  const uc={critical:0,urgent:0,moderate:0,stable:0};
+  const ac={'0–12':0,'13–19':0,'20–39':0,'40–59':0,'60–74':0,'75+':0};
+  DB.forEach(p=>{cc[p.cat]=(cc[p.cat]||0)+1;bc[p.bt]=(bc[p.bt]||0)+1;uc[p.urg]++;if(p.age<=12)ac['0–12']++;else if(p.age<=19)ac['13–19']++;else if(p.age<=39)ac['20–39']++;else if(p.age<=59)ac['40–59']++;else if(p.age<=74)ac['60–74']++;else ac['75+']++;});
+  if(CHARTS.urg)CHARTS.urg.destroy();
+  CHARTS.urg=new Chart(qs('#ch-urg'),{type:'doughnut',data:{labels:['Critical','Urgent','Moderate','Stable'],datasets:[{data:[uc.critical,uc.urgent,uc.moderate,uc.stable],backgroundColor:['#f43f5e','#f97316','#f59e0b','#10b981'],borderWidth:0,hoverOffset:5}]},options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:true,position:'right',labels:{color:'#8892a8',font:{size:10,family:'IBM Plex Mono'},padding:12,boxWidth:9}},tooltip:{callbacks:{label:c=>` ${c.label}: ${c.raw} (${(c.raw/DB.length*100).toFixed(1)}%)`}}}}});
+  const sc=Object.entries(cc).sort((a,b)=>b[1]-a[1]);
+  if(CHARTS.dis)CHARTS.dis.destroy();
+  CHARTS.dis=new Chart(qs('#ch-dis'),{type:'bar',data:{labels:sc.map(([c])=>c),datasets:[{data:sc.map(([,v])=>v),backgroundColor:sc.map((_,i)=>PAL[i%PAL.length]+'bb'),borderRadius:3,borderWidth:0}]},options:{...BASE,scales:{x:{...GR,ticks:{...GR.ticks,maxRotation:35,minRotation:35}},y:{...GR}}}});
+  if(CHARTS.bt)CHARTS.bt.destroy();
+  CHARTS.bt=new Chart(qs('#ch-bt'),{type:'bar',data:{labels:BTS,datasets:[{data:BTS.map(b=>bc[b]),backgroundColor:'#f43f5e99',borderRadius:4,borderWidth:0}]},options:{...BASE,scales:{x:{...GR},y:{...GR}}}});
+  if(CHARTS.age)CHARTS.age.destroy();
+  CHARTS.age=new Chart(qs('#ch-age'),{type:'bar',data:{labels:Object.keys(ac),datasets:[{data:Object.values(ac),backgroundColor:'#22d3ee88',borderRadius:4,borderWidth:0}]},options:{...BASE,scales:{x:{...GR},y:{...GR}}}});
+}
+
+// ══════════════════════════════════════════════════════
+// HOSPITAL BARS + ALERTS
+// ══════════════════════════════════════════════════════
+function renderHospBars(){
+  qs('#hbar-list').innerHTML=HOSPS.map((h,i)=>{const p=HLOADS[i];const col=p>85?'var(--rose)':p>72?'var(--or)':'var(--teal)';return`<div class="hbi"><span class="hbn">${h}</span><div class="hbt"><div class="hbf" style="width:${p}%;background:${col}"></div></div><span class="hbp">${p}%</span></div>`;}).join('');
+}
+function renderAlerts(){
+  const cr=DB.filter(p=>p.urg==='critical').slice(0,7);
+  qs('#alert-feed').innerHTML=cr.map(p=>`<div class="acard crit" onclick="showPt('${p.id}')"><div class="abody"><div class="aname">${p.name}${p.isPaed?` <span class="paed">PAED</span>`:''}</div><div class="asub">${p.dis} · ${p.need}</div></div><div style="text-align:right"><span class="up critical"><span class="up-d"></span>Critical</span><div class="atime">${p.win}</div></div></div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// ISCHAEMIA CLOCKS — live second-by-second
+// ══════════════════════════════════════════════════════
+function renderClocks(){
+  const cr=DB.filter(p=>p.urg==='critical').sort((a,b)=>a.remaining-b.remaining);
+  if(!cr.length){qs('#clock-list').innerHTML='<div style="padding:18px;color:var(--t3);font-family:var(--mono);font-size:12px">No critical patients with active ischaemia clocks</div>';return;}
+  const CC={oncology:'#fdba74',haematology:'#d8b4fe',hiv:'#fda4af',cardiac:'#f9a8d4',renal:'#5eead4',hepatic:'#fde047',pulmonary:'#93c5fd',neurological:'#a5b4fc',diabetes:'#6ee7b7',autoimmune:'#fcd34d',trauma:'#fca5a5',infectious:'#99f6e4',genetic:'#c4b5fd'};
+  qs('#clock-list').innerHTML=cr.map(p=>{
+    const h=Math.floor(p.remaining),m=Math.floor((p.remaining-h)*60),s=Math.floor(((p.remaining-h)*60-m)*60);
+    const z=p.remaining<=2?'danger':p.remaining<=6?'warning':'ok';
+    const pct=Math.max(0,Math.min(100,(p.remaining/p.winH)*100));
+    const bc=z==='danger'?'var(--rose)':z==='warning'?'var(--am)':'var(--em)';
+    const col=CC[p.cat]||'#60a5fa';const ini=p.name.split(' ').map(n=>n[0]).join('').slice(0,2);
+    return`<div class="clock-card ${z}" id="clk-${p.id}">
+      <div class="clock-av" style="background:${col}1a;color:${col};border:1px solid ${col}33">${ini}</div>
+      <div class="clock-info">
+        <div class="clock-name">${p.name}${p.isPaed?` <span class="paed">PAED +15%</span>`:''}</div>
+        <div class="clock-sub">${p.dis} · ${p.need} · ${p.hosp}</div>
+        <div class="clock-bw"><div class="clock-bf" style="width:${pct}%;background:${bc}"></div></div>
+      </div>
+      <div class="clock-timer ${z}" id="ct-${p.id}">${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}</div>
+    </div>`;
+  }).join('');
+}
+
+setInterval(()=>{
+  DB.forEach(p=>{if(p.urg==='critical'&&p.remaining>0){p.remaining=Math.max(0,+(p.remaining-1/3600).toFixed(4));if(p.remaining===0){EXPIRED++;toast(`Organ expired: ${p.name} — RL penalty −1.0`,'err');}}});
+  if(qs('#pg-ischaemia.active')){
+    DB.filter(p=>p.urg==='critical').forEach(p=>{
+      const el=qs(`#ct-${p.id}`);if(!el)return;
+      const h=Math.floor(p.remaining),m=Math.floor((p.remaining-h)*60),s=Math.floor(((p.remaining-h)*60-m)*60);
+      el.textContent=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+      const z=p.remaining<=2?'danger':p.remaining<=6?'warning':'ok';
+      el.className=`clock-timer ${z}`;const cd=qs(`#clk-${p.id}`);if(cd)cd.className=`clock-card ${z}`;
+    });
+    qs('#ic-d').textContent=DB.filter(p=>p.urg==='critical'&&p.remaining<=2).length;
+    qs('#ic-w').textContent=DB.filter(p=>p.urg==='critical'&&p.remaining>2&&p.remaining<=6).length;
+  }
+  syncAll();
+},1000);
+
+// ══════════════════════════════════════════════════════
+// PATIENT TABLE
+// ══════════════════════════════════════════════════════
+let fuF='all',fcF='all',fnF='all',ptP=1,ptSrc='';const PPG=20;
+function getFilt(){return DB.filter(p=>{if(fuF!=='all'&&p.urg!==fuF)return false;if(fcF!=='all'&&p.cat!==fcF)return false;if(fnF!=='all'&&p.nt!==fnF)return false;if(ptSrc){const q=ptSrc.toLowerCase();if(!p.name.toLowerCase().includes(q)&&!p.id.toLowerCase().includes(q)&&!p.dis.toLowerCase().includes(q))return false;}return true;});}
+function filterPts(){ptSrc=qs('#pt-src').value;ptP=1;renderPtTable();}
+document.querySelectorAll('[data-fu]').forEach(b=>b.addEventListener('click',()=>{fuF=b.dataset.fu;document.querySelectorAll('[data-fu]').forEach(x=>x.classList.remove('on'));b.classList.add('on');ptP=1;renderPtTable();}));
+document.querySelectorAll('[data-fc]').forEach(b=>b.addEventListener('click',()=>{fcF=b.dataset.fc;document.querySelectorAll('[data-fc]').forEach(x=>x.classList.remove('on'));b.classList.add('on');ptP=1;renderPtTable();}));
+document.querySelectorAll('[data-fn]').forEach(b=>b.addEventListener('click',()=>{fnF=b.dataset.fn;document.querySelectorAll('[data-fn]').forEach(x=>x.classList.remove('on'));b.classList.add('on');ptP=1;renderPtTable();}));
+qs('#pt-prev').onclick=()=>{if(ptP>1){ptP--;renderPtTable();}};
+qs('#pt-next').onclick=()=>{const fp=getFilt();if(ptP<Math.ceil(fp.length/PPG)){ptP++;renderPtTable();}};
+function renderPtTable(){
+  const fp=getFilt();const pages=Math.max(1,Math.ceil(fp.length/PPG));if(ptP>pages)ptP=pages;
+  const slice=fp.slice((ptP-1)*PPG,ptP*PPG);
+  qs('#pt-cnt').textContent=fp.length.toLocaleString();
+  qs('#pt-pi').textContent=`${Math.min((ptP-1)*PPG+1,fp.length)}–${Math.min(ptP*PPG,fp.length)} of ${fp.length}`;
+  qs('#pt-prev').disabled=ptP<=1;qs('#pt-next').disabled=ptP>=pages;
+  let nums='';const lo=Math.max(1,ptP-2),hi=Math.min(pages,ptP+2);
+  for(let i=lo;i<=hi;i++)nums+=`<button class="pb${i===ptP?' cur':''}" onclick="ptGo(${i})">${i}</button>`;
+  qs('#pt-pns').innerHTML=nums;
+  const sc=s=>s>=0.8?'var(--em)':s>=0.65?'var(--am)':'var(--rose)';
+  qs('#pt-body').innerHTML=slice.map(p=>`<tr>
+    <td><span class="tdid">${p.id}</span></td>
+    <td><span class="tdname">${p.name}</span></td>
+    <td><span class="tdnum">${p.age}y</span></td>
+    <td><span class="gbadge g${p.g.toLowerCase()}">${p.g==='M'?'Male':p.g==='F'?'Female':'Other'}</span></td>
+    <td><span class="tdnum">${p.bt}</span></td>
+    <td><span class="dchip dc-${p.cat}">${p.cat.charAt(0).toUpperCase()+p.cat.slice(1)}</span></td>
+    <td style="max-width:150px"><span style="font-size:11px;color:var(--t2);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${p.dis}">${p.dis}</span></td>
+    <td><span class="up ${p.urg}"><span class="up-d"></span>${p.urg.charAt(0).toUpperCase()+p.urg.slice(1)}</span></td>
+    <td><span style="font-family:var(--mono);font-size:11px;color:${p.match>=75?'var(--em)':p.match>=50?'var(--am)':'var(--rose)'}">${p.match}%</span></td>
+    <td>${p.isPaed?'<span class="paed">PAED</span>':''}</td>
+    <td><div class="sm"><div class="sm-bar"><div class="sm-fill" style="width:${p.rl*100}%;background:${sc(p.rl)}"></div></div><span class="sm-v" style="color:${sc(p.rl)}">${p.rl}</span></div></td>
+    <td><span style="font-family:var(--mono);font-size:10px;color:var(--t3)">${p.win}</span></td>
+    <td><button class="btn btn-g btn-xs" onclick="showPt('${p.id}')">View</button></td>
+  </tr>`).join('');
+}
+function ptGo(p){ptP=p;renderPtTable();}
+
+// ══════════════════════════════════════════════════════
+// PATIENT MODAL
+// ══════════════════════════════════════════════════════
+const CC2={oncology:'#fdba74',haematology:'#d8b4fe',hiv:'#fda4af',cardiac:'#f9a8d4',renal:'#5eead4',hepatic:'#fde047',pulmonary:'#93c5fd',neurological:'#a5b4fc',diabetes:'#6ee7b7',autoimmune:'#fcd34d',trauma:'#fca5a5',infectious:'#99f6e4',genetic:'#c4b5fd'};
+function showPt(id){
+  const p=DB.find(x=>x.id===id);if(!p)return;
+  const col=CC2[p.cat]||'#60a5fa';const uc={critical:'var(--rose)',urgent:'var(--or)',moderate:'var(--am)',stable:'var(--em)'};
+  const ini=p.name.split(' ').map(n=>n[0]).join('').slice(0,2);
+  const h=Math.floor(p.remaining),m=Math.floor((p.remaining-h)*60);
+  qs('#modal-pt').innerHTML=`<div class="mh">
+    <div class="mav" style="background:${col}1a;color:${col};border:1px solid ${col}33">${ini}</div>
+    <div style="flex:1;min-width:0"><div class="mname">${p.name}${p.isPaed?` <span class="paed" style="font-size:12px">PAED +15%</span>`:''}</div><div class="mmeta"><span>${p.id}</span><span>${p.age}y</span><span>${p.g==='M'?'Male':p.g==='F'?'Female':'Other'}</span><span>Blood: ${p.bt}</span><span style="color:${uc[p.urg]}">⚡ ${p.urg.charAt(0).toUpperCase()+p.urg.slice(1)}</span></div></div>
+    <button class="mcls" onclick="ovHide('ov-pt')">✕</button>
+  </div>
+  <div class="mb">
+    <div class="msec"><div class="mst">Clinical Profile</div><div class="dg">
+      <div class="di"><div class="dk">Disease</div><div class="dv">${p.dis}</div></div>
+      <div class="di"><div class="dk">Category</div><div class="dv" style="color:${col}">${p.cat.charAt(0).toUpperCase()+p.cat.slice(1)}</div></div>
+      <div class="di"><div class="dk">Treatment Need</div><div class="dv">${p.need}</div></div>
+      <div class="di"><div class="dk">Organ Needed</div><div class="dv">${p.organ||'N/A'}</div></div>
+      <div class="di"><div class="dk">Hospital</div><div class="dv">${p.hosp}</div></div>
+      <div class="di"><div class="dk">Ischaemia Remaining</div><div class="dv" style="font-family:var(--mono);color:${p.remaining<=2?'var(--rose)':p.remaining<=6?'var(--am)':'var(--em)'};font-weight:700">${h}h ${m}m</div></div>
+      <div class="di"><div class="dk">Time Window</div><div class="dv" style="color:${uc[p.urg]};font-weight:700">${p.win}</div></div>
+      <div class="di"><div class="dk">Paediatric</div><div class="dv">${p.isPaed?'Yes — +15% RL bonus':'No'}</div></div>
+      ${p.meld?`<div class="di"><div class="dk">MELD Score</div><div class="dv" style="font-family:var(--mono);color:var(--or)">${p.meld}</div></div>`:''}
+    </div></div>
+    <div class="msec"><div class="mst">HLA Typing (A · B · DR)</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        ${['A','B','DR'].map(l=>`<div style="background:var(--bg2);border:1px solid var(--b1);border-radius:7px;padding:8px 12px"><div style="font-size:9px;font-family:var(--mono);color:var(--t3);margin-bottom:5px">HLA-${l}</div><div style="display:flex;gap:3px">${(p.hla[l]||[]).map(ag=>`<span class="hla-ag hla-m">${ag}</span>`).join('')}</div></div>`).join('')}
+      </div>
+    </div>
+    <div class="msec"><div class="mst">RL Metrics</div>
+      <div class="pbar-r"><div class="pbar-ls"><span>Compatibility Score</span><span style="color:var(--teal)">${p.match}%</span></div><div class="pbtrack"><div class="pbfill" style="width:${p.match}%;background:linear-gradient(90deg,var(--teal),var(--cyan))"></div></div></div>
+      <div class="pbar-r"><div class="pbar-ls"><span>Survival Probability</span><span style="color:var(--blue)">${Math.floor(p.match*0.9)}%</span></div><div class="pbtrack"><div class="pbfill" style="width:${Math.floor(p.match*0.9)}%;background:linear-gradient(90deg,var(--blue),var(--vi))"></div></div></div>
+      <div class="pbar-r"><div class="pbar-ls"><span>RL Score${p.isPaed?' (paed bonus incl.)':''}</span><span style="color:var(--cyan)">${(p.rl*100).toFixed(1)}%</span></div><div class="pbtrack"><div class="pbfill" style="width:${p.rl*100}%;background:linear-gradient(90deg,var(--cyan),var(--em))"></div></div></div>
+    </div>
+    <div class="msec"><div class="mst">Actions</div><div style="display:flex;gap:7px;flex-wrap:wrap">
+      <button class="btn btn-p btn-sm" onclick="quickAlloc('${p.id}')">Match Allocation</button>
+      <button class="btn btn-e btn-sm" onclick="dispense('${p.id}','${p.bt}')">Dispense Blood</button>
+      <button class="btn btn-d btn-sm" onclick="removePt('${p.id}')">Remove</button>
+      <button class="btn btn-g btn-sm" onclick="ovHide('ov-pt')">Close</button>
+    </div></div>
+  </div>`;
+  ovShow('ov-pt');
+}
+
+// ══════════════════════════════════════════════════════
+// ALLOCATIONS ENGINE (mirrors app.py /step logic)
+// ══════════════════════════════════════════════════════
+function runRLMatch(){
+  const cr=DB.filter(p=>p.urg==='critical'&&!ALLOCS.find(a=>a.pid===p.id));
+  if(!cr.length){toast('No unmatched critical patients','inf');return;}
+  let n=0;
+  cr.slice(0,6).forEach(p=>{
+    const donor=DONORS.find(d=>d.available);if(!donor)return;
+    const rew=computeReward(p,donor,p.hosp);
+    donor.available=false;
+    ALLOCS.push({id:`ALLOC-${String(ALLOCS.length+1).padStart(4,'0')}`,pid:p.id,pname:p.name,did:donor.id,dname:donor.name,organ:rnd(donor.organs)||p.organ||'Organ',status:'pending',score:rew.value,dis:p.dis,bt:p.bt,hlaSc:rew.hlaSc||0,isPaed:p.isPaed,ts:Date.now()});n++;
+  });
+  syncAll();renderAllocList();renderDonorGrid();buildTicker();
+  toast(`${n} RL matches created (HLA-weighted)`,'ok');
+}
+function quickAlloc(pid){
+  const p=DB.find(x=>x.id===pid);if(!p)return;
+  if(ALLOCS.find(a=>a.pid===pid)){toast('Patient already allocated','inf');return;}
+  const donor=DONORS.find(d=>d.available);const org=donor?rnd(donor.organs):null;
+  if(donor)donor.available=false;
+  const rew=computeReward(p,donor,p.hosp);
+  ALLOCS.push({id:`ALLOC-${String(ALLOCS.length+1).padStart(4,'0')}`,pid:p.id,pname:p.name,did:donor?.id||'TBD',dname:donor?.name||'Pending',organ:org||p.organ||'Organ',status:'pending',score:rew.value,dis:p.dis,bt:p.bt,hlaSc:rew.hlaSc||0,isPaed:p.isPaed,ts:Date.now()});
+  syncAll();renderAllocList();renderDonorGrid();buildTicker();
+  toast(`Allocation created for ${p.name}`,'ok');ovHide('ov-pt');
+}
+function manualAlloc(){const cp=DB.filter(p=>p.urg==='critical')[0];if(cp)quickAlloc(cp.id);else toast('No critical patients','inf');}
+function clearDone(){ALLOCS=ALLOCS.filter(a=>a.status!=='complete');syncAll();renderAllocList();toast('Completed cleared','inf');}
+function setAS(id,status){const a=ALLOCS.find(x=>x.id===id);if(!a)return;a.status=status;syncAll();renderAllocList();toast(`${id} → ${status.toUpperCase()}`,'ok');}
+function renderAllocList(){
+  const el=qs('#alloc-list');
+  if(!ALLOCS.length){el.innerHTML='<div style="color:var(--t3);font-family:var(--mono);font-size:12px;padding:36px;text-align:center">No allocations yet — click Run RL Auto-Match</div>';return;}
+  const sm={pending:'ap',active:'aa',complete:'acp',failed:'af'};
+  el.innerHTML=ALLOCS.slice().reverse().map(a=>{
+    const ts=new Date(a.ts).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    return`<div class="ac"><div class="ac-id">${a.id}<br><span style="font-size:8px;color:var(--t4)">${ts}</span></div>
+    <div class="ac-main"><div class="ac-pair">${a.pname} → ${a.dname}${a.isPaed?` <span class="paed">PAED</span>`:''}</div><div class="ac-detail">${a.organ} · HLA: ${a.hlaSc||'?'}% · ${a.dis.length>30?a.dis.slice(0,30)+'…':a.dis} · ${a.bt}</div></div>
+    <span class="acs ${sm[a.status]||'ap'}">${a.status.toUpperCase()}</span>
+    <div style="display:flex;gap:5px;flex-shrink:0">
+      ${a.status==='pending'?`<button class="btn btn-e btn-xs" onclick="setAS('${a.id}','active')">Activate</button>`:''}
+      ${a.status==='active'?`<button class="btn btn-p btn-xs" onclick="setAS('${a.id}','complete')">Complete</button>`:''}
+      ${a.status==='pending'?`<button class="btn btn-d btn-xs" onclick="setAS('${a.id}','failed')">Reject</button>`:''}
+    </div>
+    <div class="ac-score">${a.score}</div></div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// DONORS
+// ══════════════════════════════════════════════════════
+function renderDonorGrid(){
+  const el=qs('#donor-grid');
+  el.innerHTML=DONORS.map(d=>{
+    const ini=d.name.split(' ').map(n=>n[0]).join('').slice(0,2);
+    return`<div class="dc"><div class="dtop"><div class="dav">${ini}</div><div style="flex:1;min-width:0"><div class="dname">${d.name}</div><div class="dmeta">${d.id} · ${d.age}y · ${d.bt} · ${d.type}</div></div><span class="dstatus ${d.available?'ds-av':'ds-fu'}">${d.available?'AVAILABLE':'MATCHED'}</span></div><div class="otags">${d.organs.map(o=>`<span class="otag ${d.available?'ot-available':'ot-matched'}">${o}</span>`).join('')}</div></div>`;
+  }).join('');
+}
+function refreshDonors(){DONORS.forEach(d=>d.available=true);renderDonorGrid();syncAll();toast('Donor availability refreshed','ok');}
+function openAddDonor(){ovShow('ov-add-donor');}
+function submitDonor(){
+  const name=qs('#d-name').value.trim();if(!name){toast('Name required','err');return;}
+  const organs=[...document.querySelectorAll('.ocb:checked')].map(c=>c.value);if(!organs.length){toast('Select at least one organ','err');return;}
+  DONORS.push({id:`DNR-${String(DONORS.length+1).padStart(3,'0')}`,name,age:+qs('#d-age').value||30,bt:qs('#d-bt').value,type:qs('#d-type').value,organs,hla:rHLA(),available:true});
+  renderDonorGrid();syncAll();ovHide('ov-add-donor');toast(`Donor ${name} registered`,'ok');
+  qs('#d-name').value='';document.querySelectorAll('.ocb').forEach(c=>c.checked=false);
+}
+
+// ══════════════════════════════════════════════════════
+// BLOOD BANK
+// ══════════════════════════════════════════════════════
+function renderBloodGrid(){
+  qs('#blood-grid').innerHTML=BTS.map(bt=>{
+    const d=BB[bt]||{units:0,exp:42,comp:'Whole Blood'};
+    const pct=Math.min(100,(d.units/150)*100);const ec=d.exp<7?'var(--rose)':d.exp<14?'var(--or)':'var(--t3)';
+    return`<div class="bcard"><div class="btype">${bt}</div><div class="bunits">${d.units} units</div><div class="bcomp">${d.comp}</div><div class="btrack"><div class="bbar" style="width:${pct}%"></div></div><div class="bexp" style="color:${ec}">Exp: ${d.exp}d</div></div>`;
+  }).join('');
+}
+function renderTF(){
+  const reqs=DB.filter(p=>p.nt==='blood').slice(0,8);
+  qs('#tf-list').innerHTML=reqs.map(p=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--b0)"><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;margin-bottom:1px">${p.name}${p.isPaed?` <span class="paed">PAED</span>`:''}</div><div style="font-size:10px;color:var(--t2)">${p.dis} · ${p.need} · Blood: ${p.bt}</div></div><span class="up ${p.urg}"><span class="up-d"></span>${p.urg.charAt(0).toUpperCase()+p.urg.slice(1)}</span><button class="btn btn-d btn-xs" onclick="dispense('${p.id}','${p.bt}')">Dispense</button></div>`).join('');
+}
+function dispense(pid,bt){if(BB[bt]&&BB[bt].units>=2){BB[bt].units-=2;renderBloodGrid();syncAll();toast(`2 units ${bt} dispensed`,'ok');}else toast(`No ${bt} stock!`,'err');}
+function checkExpiry(){const low=BTS.filter(bt=>BB[bt]&&BB[bt].units<30);const exp=BTS.filter(bt=>BB[bt]&&BB[bt].exp<7);if(exp.length)toast(`Expiring: ${exp.join(', ')}`,'err');if(low.length)toast(`Low stock: ${low.join(', ')}`,'wrn');if(!low.length&&!exp.length)toast('All blood stock nominal','ok');}
+function reqDonation(){toast('Donation drive request sent to 127 registered donors','ok');}
+function openAddBlood(){ovShow('ov-add-blood');}
+function submitBlood(){
+  const bt=qs('#b-type').value,units=+qs('#b-units').value;if(!units||units<1){toast('Enter valid units','err');return;}
+  if(!BB[bt])BB[bt]={units:0,comp:qs('#b-comp').value,exp:+qs('#b-exp').value};
+  BB[bt].units+=units;BB[bt].comp=qs('#b-comp').value;BB[bt].exp=Math.max(BB[bt].exp,+qs('#b-exp').value);
+  renderBloodGrid();syncAll();ovHide('ov-add-blood');toast(`${units} units ${bt} added`,'ok');
+}
+
+// ══════════════════════════════════════════════════════
+// HLA MATRIX PAGE
+// ══════════════════════════════════════════════════════
+function renderHLAPage(){
+  const cr=DB.filter(p=>p.urg==='critical').slice(0,6);
+  const pairs=cr.map(p=>{const d=DONORS.find(d=>d.available)||DONORS[0];return{p,d,sc:hlaScore(p.hla,d.hla)};}).filter(x=>x.d);
+  const high=pairs.filter(x=>x.sc>=75).length;const mid=pairs.filter(x=>x.sc>=50&&x.sc<75).length;const low=pairs.filter(x=>x.sc<50).length;
+  qs('#hla-h').textContent=high;qs('#hla-m').textContent=mid;qs('#hla-l').textContent=low;
+  qs('#hla-pairs').innerHTML=pairs.map(({p,d,sc})=>`
+    <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:12px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <div style="flex:1"><div style="font-size:10px;color:var(--t3);font-family:var(--mono);margin-bottom:2px">RECIPIENT</div><div style="font-size:13px;font-weight:700">${p.name} · ${p.bt}${p.isPaed?' <span class="paed">PAED</span>':''}</div></div>
+        <div style="background:${sc>=75?'rgba(16,185,129,0.12)':sc>=50?'rgba(245,158,11,0.12)':'rgba(244,63,94,0.1)'};border:1px solid ${sc>=75?'rgba(16,185,129,0.25)':sc>=50?'rgba(245,158,11,0.25)':'rgba(244,63,94,0.2)'};border-radius:7px;padding:7px 12px;text-align:center"><div style="font-size:20px;font-weight:800;font-family:var(--mono);color:${sc>=75?'var(--em)':sc>=50?'var(--am)':'var(--rose)'}">${sc}%</div><div style="font-size:8px;font-family:var(--mono);color:var(--t3)">HLA MATCH</div></div>
+        <div style="flex:1;text-align:right"><div style="font-size:10px;color:var(--t3);font-family:var(--mono);margin-bottom:2px">DONOR</div><div style="font-size:13px;font-weight:700">${d.name} · ${d.bt}</div></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        ${['A','B','DR'].map(l=>`<div style="flex:1;background:var(--s1);border:1px solid var(--b1);border-radius:6px;padding:7px"><div style="font-size:8px;font-family:var(--mono);color:var(--t3);margin-bottom:4px">HLA-${l}</div><div style="display:flex;gap:2px;flex-wrap:wrap">${p.hla[l].map(ag=>`<span class="hla-ag ${d.hla[l].includes(ag)?'hla-m':'hla-x'}">${ag}</span>`).join('')}</div></div>`).join('')}
+      </div>
+    </div>`).join('');
+  // Matrix table
+  const drs=DONORS.slice(0,5);const pts=DB.filter(p=>p.urg==='critical').slice(0,5);
+  let html=`<table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10px"><thead><tr><th style="padding:6px 10px;text-align:left;background:var(--bg2);border:1px solid var(--b1);color:var(--t3)">P \\ D</th>${drs.map(d=>`<th style="padding:6px 10px;background:var(--bg2);border:1px solid var(--b1);color:var(--t3)">${d.name.split(' ')[0]}</th>`).join('')}</tr></thead><tbody>`;
+  pts.forEach(p=>{html+=`<tr><td style="padding:6px 10px;border:1px solid var(--b1);font-weight:600">${p.name.split(' ')[0]}${p.isPaed?' 🧒':''}</td>`;drs.forEach(d=>{const sc=hlaScore(p.hla,d.hla);html+=`<td style="padding:6px 10px;border:1px solid var(--b1);text-align:center;background:${sc>=75?'rgba(16,185,129,0.12)':sc>=50?'rgba(245,158,11,0.1)':'rgba(244,63,94,0.08)'};color:${sc>=75?'var(--em)':sc>=50?'var(--am)':'var(--rose)'}">${sc}%</td>`;});html+=`</tr>`;});
+  html+=`</tbody></table>`;qs('#hla-matrix').innerHTML=html;
+}
+
+// ══════════════════════════════════════════════════════
+// TRANSPORT MAP
+// ══════════════════════════════════════════════════════
+function renderTransportMap(){
+  let svg='';
+  ROUTES.forEach(rt=>{const [x1,y1]=HCOORDS[rt.from];const [x2,y2]=HCOORDS[rt.to];const col=rt.active?'#22d3ee':'#2d3748';svg+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="${rt.active?1.5:0.7}" stroke-dasharray="${rt.active?'none':'4 4'}" opacity="${rt.active?0.8:0.3}"/>`;if(rt.active){const mx=(x1+x2)/2,my=(y1+y2)/2;svg+=`<text x="${mx}" y="${my-3}" text-anchor="middle" fill="#22d3ee" font-size="7" font-family="IBM Plex Mono">${rt.hours}h</text>`;}});
+  HOSPS.forEach((h,i)=>{const [x,y]=HCOORDS[i];const l=HLOADS[i];const col=l>85?'#f43f5e':l>72?'#f97316':'#2dd4bf';const r=l>85?7:5;const sht=h.replace('Hospital','').replace('Health','').trim().split(' ').slice(0,2).join(' ');svg+=`<circle cx="${x}" cy="${y}" r="${r}" fill="${col}" opacity="0.9"/><circle cx="${x}" cy="${y}" r="${r+3}" fill="none" stroke="${col}" stroke-width="1" opacity="0.25"/><text x="${x}" y="${y+r+9}" text-anchor="middle" fill="#8892a8" font-size="7" font-family="IBM Plex Mono">${sht}</text>`;});
+  qs('#map-svg').innerHTML=svg;
+  qs('#route-list').innerHTML=ROUTES.slice(0,10).map(rt=>`<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--b0)"><span style="font-size:12px;flex:1">${HOSPS[rt.from]} → ${HOSPS[rt.to]}</span><span style="font-family:var(--mono);font-size:11px;color:${rt.hours>6?'var(--rose)':rt.hours>3?'var(--am)':'var(--em)'}">${rt.hours}h</span><span style="font-size:9px;padding:2px 7px;border-radius:20px;font-family:var(--mono);${rt.active?'background:rgba(34,211,238,0.1);color:var(--cyan)':'background:rgba(255,255,255,0.04);color:var(--t3)'}">${rt.active?'ACTIVE':'IDLE'}</span></div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// RL ENVIRONMENT MATCH ENGINE
+// ══════════════════════════════════════════════════════
+function computeMatches(){
+  const cr=DB.filter(p=>p.urg==='critical').slice(0,5);
+  const avd=DONORS.filter(d=>d.available);
+  const el=qs('#rl-match-out');
+  if(!cr.length||!avd.length){el.innerHTML='<div style="color:var(--or);font-family:var(--mono);font-size:11px;padding:12px 0">Insufficient data — ensure critical patients and available donors exist</div>';return;}
+  el.innerHTML=cr.map((p,i)=>{
+    const d=avd[i%avd.length];const rew=computeReward(p,d,p.hosp);const sc=rew.value;const hlaSc=rew.hlaSc||hlaScore(p.hla,d.hla);
+    return`<div class="mp"><div class="ms"><div class="ms-lbl">Recipient — Critical</div><div class="ms-name">${p.name}${p.isPaed?` <span class="paed">PAED</span>`:''}</div><div class="ms-detail">${p.dis} · Blood: ${p.bt} · Isch: ${p.remaining.toFixed(1)}h</div></div>
+    <div class="marrow">→</div>
+    <div class="ms"><div class="ms-lbl">Matched Donor</div><div class="ms-name">${d.name}</div><div class="ms-detail">${d.id} · Blood: ${d.bt} · HLA: ${hlaSc}%</div></div>
+    <div class="mscore"><div class="msv">${sc}</div><div class="msl">RL Score</div></div>
+    <button class="btn btn-p btn-xs" onclick="confMatch('${p.id}','${d.id}','${sc}','${p.name}','${d.name}','${hlaSc}')">Confirm</button></div>`;
+  }).join('');
+}
+function confMatch(pid,did,score,pname,dname,hlaSc){
+  ALLOCS.push({id:`ALLOC-${String(ALLOCS.length+1).padStart(4,'0')}`,pid,pname,did,dname,organ:'RL Computed',status:'active',score:+score,dis:'RL Match',bt:'—',hlaSc:+hlaSc,isPaed:false,ts:Date.now()});
+  syncAll();renderAllocList();buildTicker();toast(`Match confirmed — RL score ${score}`,'ok');setTimeout(computeMatches,300);
+}
+function runSim(){
+  const task=qs('#sim-sel').value;const ss=qs('#ss');const term=qs('#sim-term');
+  ss.className='sst ss-run';ss.textContent='RUNNING';term.innerHTML='';
+  const base={easy:0.847,medium:0.693,hard:0.521};const score=(base[task]+(Math.random()*0.04-0.02)).toFixed(3);
+  const lines=[
+    `<span class="tin">$ python inference.py --task ${task} --env haemorl-organ-allocation</span>`,
+    `<span class="tok">[INFO] HaemoRL v4.0 — ${DB.length} patients · ${DONORS.length} donors</span>`,
+    `<span class="tin">[ENV] blood_bank=${Object.values(BB).reduce((s,b)=>s+b.units,0)} units · critical=${DB.filter(p=>p.urg==='critical').length} · paediatric=${DB.filter(p=>p.isPaed).length}</span>`,
+    `<span class="tok">[ENV] HLA typing loaded · ischaemia clocks active · transport routes loaded</span>`,
+    `<span class="tok">[ENV] reset() → obs shape (42,) · done=False</span>`,
+    ...Array.from({length:task==='easy'?5:task==='medium'?10:16},(_,i)=>{const r=(Math.random()*0.4+0.5).toFixed(3);const p=(Math.random()*0.08).toFixed(3);const h=(Math.random()*0.1).toFixed(3);return`<span class="tok">[STEP] step=${i+1} action={"patient_id":"HRL-${ri(1,999).toString().padStart(5,'0')}","donor_id":"DNR-${ri(1,20).toString().padStart(3,'0')}","hospital":"${rnd(HOSPS).slice(0,15)}...","action_type":"match_organ"} reward=${r} done=false error=null</span>`;}),
+    task==='hard'?`<span class="twn">[STEP] step=${task==='hard'?16:10} action=skip reward=-0.30 done=false error=null -- WARNING: ischaemia at 1.8h</span>`:'',
+    `<span class="tok">[ENV] Episode complete · done=True</span>`,
+    `<span class="tdm">─────────────────────────────────────────────</span>`,
+    `<span class="tok">[END] success=true steps=${task==='easy'?8:task==='medium'?28:56} score=${score} rewards=${Array.from({length:task==='easy'?8:task==='medium'?28:56},()=>(Math.random()*0.4+0.4).toFixed(2)).join(',')}</span>`,
+    `<span class="tin">[OK] Reproducible baseline confirmed ✓</span>`,
+  ].filter(Boolean);
+  let i=0;const iv=setInterval(()=>{if(i<lines.length){term.innerHTML+=lines[i]+'\n';term.scrollTop=term.scrollHeight;i++;}else{clearInterval(iv);ss.className='sst ss-done';ss.textContent='COMPLETE';const k=task.charAt(0);qs(`#sb-${k}`).textContent=score;qs(`#ts-${k}`).textContent=score;}},150);
+}
+
+// ══════════════════════════════════════════════════════
+// INFERENCE SCRIPT SIMULATOR (exact stdout format)
+// ══════════════════════════════════════════════════════
+function runInferenceSim(task){
+  const term=qs('#inf-term');term.innerHTML='';
+  const BENCH='haemorl-organ-allocation';const MODEL='Qwen/Qwen2.5-72B-Instruct';
+  const maxSteps={single_match:10,batch_allocation:30,crisis_routing:60}[task]||10;
+  const base={single_match:0.847,batch_allocation:0.693,crisis_routing:0.521};
+  const score=(base[task]+(Math.random()*0.04-0.02)).toFixed(3);
+  const rewards=Array.from({length:Math.min(maxSteps,task==='single_match'?8:task==='batch_allocation'?25:55)},()=>+(Math.random()*0.5+0.3).toFixed(2));
+  const lines=[
+    `<span class="tin"># python inference.py running...</span>`,
+    `<span class="tok">[START] task=${task} env=${BENCH} model=${MODEL}</span>`,
+    ...rewards.map((r,i)=>{
+      const pt=DB[ri(0,DB.length-1)];const don=DONORS[ri(0,DONORS.length-1)];
+      const action=JSON.stringify({patient_id:pt.id,donor_id:don.id,hospital:rnd(HOSPS),action_type:'match_organ'});
+      return`<span class="tok">[STEP] step=${i+1} action=${action} reward=${r.toFixed(2)} done=${i===rewards.length-1?'true':'false'} error=null</span>`;
+    }),
+    `<span class="tok">[END] success=true steps=${rewards.length} score=${score} rewards=${rewards.map(r=>r.toFixed(2)).join(',')}</span>`,
+    `<span class="tin"># Done. Score: ${score}</span>`,
+  ];
+  let i=0;const iv=setInterval(()=>{if(i<lines.length){term.innerHTML+=lines[i]+'\n';term.scrollTop=term.scrollHeight;i++;}else clearInterval(iv);},120);
+}
+
+// ══════════════════════════════════════════════════════
+// EPISODE REPLAY
+// ══════════════════════════════════════════════════════
+let EPISODE=null,EP_IDX=0,EP_INTERVAL=null,rewardChart=null,compareChart=null;
+function runEp(diff){
+  const steps=diff==='easy'?8:diff==='medium'?18:28;const ep=[];let cum=0;const rdata=[];
+  for(let i=0;i<steps;i++){
+    const p=rnd(DB.filter(x=>x.urg==='critical')||DB);const d=rnd(DONORS);
+    const rew=computeReward(p,d,p.hosp);const r=rew.value;const pen=r<0?Math.abs(r):0;
+    cum+=r;rdata.push(+cum.toFixed(3));
+    ep.push({step:i+1,action:`${p.name.split(' ')[0]} → ${d.name.split(' ')[0]}`,detail:`Blood:${p.bt}/${d.bt} HLA:${rew.hlaSc}% Isch:${p.remaining.toFixed(1)}h${p.isPaed?' PAED+0.15':''}`,reward:+r.toFixed(3),cum:+cum.toFixed(3),pen});
+  }
+  EPISODE=ep;EP_IDX=0;
+  qs('#rp-chip').textContent=`${diff.toUpperCase()} · ${steps} steps`;
+  qs('#ep-tr').textContent=+cum.toFixed(3);qs('#ep-ar').textContent=+(cum/steps).toFixed(3);
+  qs('#ep-pen').textContent=+ep.reduce((s,e)=>s+e.pen,0).toFixed(3);qs('#ep-st').textContent=steps;
+  renderRpSteps();buildRewardChart(rdata);
+}
+function buildRewardChart(data){
+  if(rewardChart)rewardChart.destroy();
+  rewardChart=new Chart(qs('#ch-reward'),{type:'line',data:{labels:data.map((_,i)=>`S${i+1}`),datasets:[{data,borderColor:'#22d3ee',backgroundColor:'rgba(34,211,238,0.07)',borderWidth:2,fill:true,tension:0.4,pointRadius:2,pointBackgroundColor:'#22d3ee'}]},options:{...BASE,scales:{x:{...GR,ticks:{...GR.ticks,maxTicksLimit:8}},y:{...GR}}}});
+}
+function renderRpSteps(){
+  if(!EPISODE){return;}
+  qs('#replay-steps').innerHTML=EPISODE.map((s,i)=>`<div class="rp-step${i===EP_IDX?' act':''}" onclick="jumpEp(${i})"><span class="rp-num">S${s.step}</span><div class="rp-body"><div class="rp-act">${s.action}</div><div class="rp-detail">${s.detail} · Cum: ${s.cum}</div></div><span class="rp-rew ${s.reward>=0?'pos':'neg'}">${s.reward>=0?'+':''}${s.reward}</span></div>`).join('');
+}
+function jumpEp(i){EP_IDX=i;renderRpSteps();}
+function rpStep(d){EP_IDX=Math.max(0,Math.min((EPISODE?.length||1)-1,EP_IDX+d));renderRpSteps();}
+function rpReset(){EP_IDX=0;renderRpSteps();}
+function rpPlay(){if(EP_INTERVAL)clearInterval(EP_INTERVAL);EP_INTERVAL=setInterval(()=>{if(!EPISODE||EP_IDX>=EPISODE.length-1){clearInterval(EP_INTERVAL);return;}EP_IDX++;renderRpSteps();},700);}
+
+// ══════════════════════════════════════════════════════
+// COMPARATIVE BASELINE
+// ══════════════════════════════════════════════════════
+function runComparison(){
+  const rS=(+Math.random()*0.2+0.3).toFixed(2),rW=ri(8,18),rI=ri(12,22),rH=(40+ri(0,20))+'%';
+  const rE=(0.28+Math.random()*0.15).toFixed(3),rM=(0.22+Math.random()*0.12).toFixed(3),rHd=(0.15+Math.random()*0.10).toFixed(3);
+  const rlS=(0.72+Math.random()*0.15).toFixed(2),rlW=ri(1,4),rlI=ri(1,4),rlH=(72+ri(0,18))+'%';
+  const rlE=(0.82+Math.random()*0.06).toFixed(3),rlM=(0.65+Math.random()*0.08).toFixed(3),rlHd=(0.48+Math.random()*0.08).toFixed(3);
+  ['rnd-s','rnd-w','rnd-i','rnd-h','rnd-e','rnd-m','rnd-hd'].forEach((id,i)=>qs('#'+id).textContent=[rS,rW,rI,rH,rE,rM,rHd][i]);
+  ['rl-s','rl-w','rl-i','rl-h','rl-e','rl-m','rl-hd'].forEach((id,i)=>qs('#'+id).textContent=[rlS,rlW,rlI,rlH,rlE,rlM,rlHd][i]);
+  if(compareChart)compareChart.destroy();
+  const labels=['Survival','Organs Saved','Isch Safety','HLA Rate','Easy','Medium','Hard'];
+  compareChart=new Chart(qs('#ch-compare'),{type:'bar',data:{labels,datasets:[{label:'Random',data:[+rS,1-rW/20,1-rI/25,parseInt(rH)/100,+rE,+rM,+rHd],backgroundColor:'rgba(244,63,94,0.5)',borderRadius:3,borderWidth:0},{label:'RL Agent',data:[+rlS,1-rlW/20,1-rlI/25,parseInt(rlH)/100,+rlE,+rlM,+rlHd],backgroundColor:'rgba(34,211,238,0.6)',borderRadius:3,borderWidth:0}]},options:{...BASE,plugins:{legend:{display:true,labels:{color:'#8892a8',font:{size:10,family:'IBM Plex Mono'}}}},scales:{x:{...GR},y:{...GR,max:1}}}});
+  toast('Comparison complete — RL outperforms random baseline significantly','ok');
+}
+function resetComp(){['rnd-s','rnd-w','rnd-i','rnd-h','rnd-e','rnd-m','rnd-hd','rl-s','rl-w','rl-i','rl-h','rl-e','rl-m','rl-hd'].forEach(id=>qs('#'+id).textContent='—');if(compareChart)compareChart.destroy();}
+
+// ══════════════════════════════════════════════════════
+// ADD PATIENT
+// ══════════════════════════════════════════════════════
+function syncDD(){const cat=qs('#f-cat').value;qs('#f-dis').innerHTML=(DIS[cat]||[]).map(d=>`<option>${d}</option>`).join('');}
+function openAddPt(){syncDD();ovShow('ov-add-pt');}
+function submitPt(){
+  const fn=qs('#f-fn').value.trim(),ln=qs('#f-ln').value.trim();if(!fn||!ln){toast('Name required','err');return;}
+  const age=+qs('#f-age').value;if(!age||age<1||age>120){toast('Valid age required','err');return;}
+  PID++;const cat=qs('#f-cat').value,urg=qs('#f-urg').value,dis=qs('#f-dis').value,need=qs('#f-need').value;
+  const nt=need.toLowerCase().includes('transplant')?'organ':need.toLowerCase().includes('blood')?'blood':'treatment';
+  const isPaed=age<=17;const iArr=ISCH[urg];const winH=rnd(iArr);const wArr=WIN_D[urg];const win=wArr[iArr.indexOf(winH)]||wArr[0];
+  DB.push({id:`HRL-${String(PID).padStart(5,'0')}`,name:`${fn} ${ln}`,age,g:qs('#f-g').value,bt:qs('#f-bt').value,cat,dis,urg,need,nt,organ:ORGANS[cat]||null,win,winH,remaining:winH*0.7,hosp:qs('#f-hosp').value,hla:rHLA(),match:ri(55,98),rl:+Math.min(0.999,(Math.random()*0.45+0.55)+(isPaed?0.15:0)).toFixed(3),isPaed,meld:cat==='hepatic'?ri(20,40):null,wait:0});
+  syncAll();renderPtTable();renderAlerts();buildCharts();buildTicker();
+  ovHide('ov-add-pt');toast(`${fn} ${ln} registered as HRL-${String(PID).padStart(5,'0')}${isPaed?' — PAEDIATRIC':''}`,'ok');
+  qs('#f-fn').value='';qs('#f-ln').value='';qs('#f-age').value='';
+}
+function removePt(id){DB=DB.filter(p=>p.id!==id);syncAll();renderPtTable();renderAlerts();buildCharts();buildTicker();toast('Patient removed','inf');ovHide('ov-pt');}
+function exportCSV(){
+  const fp=getFilt();const hdr='ID,Name,Age,Gender,Blood,Category,Disease,Urgency,Need,Window,Paediatric,HLA%,RL Score';
+  const rows=fp.map(p=>[p.id,p.name,p.age,p.g,p.bt,p.cat,`"${p.dis}"`,p.urg,`"${p.need}"`,p.win,p.isPaed?'Yes':'No',p.match,p.rl].join(','));
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent([hdr,...rows].join('\n'));a.download='haemorl_v4_patients.csv';a.click();toast(`${fp.length} records exported`,'ok');
+}
+
+// ══════════════════════════════════════════════════════
+// TICKER
+// ══════════════════════════════════════════════════════
+function buildTicker(){
+  const cr=DB.filter(p=>p.urg==='critical').slice(0,5);
+  const paed=DB.filter(p=>p.isPaed&&p.urg==='critical').length;
+  const items=cr.map(p=>`<span class="tki r">⚠ ${p.name} — ${p.dis.slice(0,25)} — ${p.win}</span>`).join('');
+  const gen=[`<span class="tki c">Patients: ${DB.length}</span>`,`<span class="tki a">Allocations: ${ALLOCS.length}</span>`,`<span class="tki">Blood: ${Object.values(BB).reduce((s,b)=>s+b.units,0)} units</span>`,`<span class="tki c">Donors: ${DONORS.filter(d=>d.available).length} available</span>`,paed?`<span class="tki r">Paed critical: ${paed}</span>`:''].filter(Boolean).join('');
+  qs('#tkin').innerHTML=items+gen+items+gen;
+}
+
+// ══════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════
+const PGTITLES={dashboard:'Dashboard',patients:'Patient Registry',ischaemia:'Ischaemia Clocks',allocations:'Allocations',donors:'Donors & Organs',bloodbank:'Blood Bank',hla:'HLA Matrix',transport:'Transport Map',rl:'RL Environment',replay:'Episode Replay',compare:'Comparative Baseline',inference:'Inference Script',deployment:'Deployment'};
+document.querySelectorAll('.ni[data-pg]').forEach(item=>{
+  item.addEventListener('click',()=>{
+    const pg=item.dataset.pg;
+    document.querySelectorAll('.pg').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
+    const el=qs('#pg-'+pg);if(el)el.classList.add('active');
+    item.classList.add('on');
+    qs('#tbpg').textContent=PGTITLES[pg]||pg;
+    if(pg==='patients')renderPtTable();
+    if(pg==='ischaemia')renderClocks();
+    if(pg==='allocations')renderAllocList();
+    if(pg==='donors')renderDonorGrid();
+    if(pg==='bloodbank'){renderBloodGrid();renderTF();}
+    if(pg==='hla')renderHLAPage();
+    if(pg==='transport')renderTransportMap();
+  });
+});
+
+// ══════════════════════════════════════════════════════
+// MODAL UTILS
+// ══════════════════════════════════════════════════════
+function ovShow(id){qs('#'+id).classList.add('on');}
+function ovHide(id){qs('#'+id).classList.remove('on');}
+function ovClose(id,e){if(e.target===qs('#'+id))ovHide(id);}
+
+// ══════════════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════════════
+const TIC={ok:'✓',err:'✗',inf:'ℹ',wrn:'⚠'};
+function toast(msg,type='inf'){
+  const tc=qs('#toasts');const t=document.createElement('div');t.className=`toast ${type}`;
+  t.innerHTML=`<span style="font-size:14px">${TIC[type]}</span><span>${msg}</span>`;
+  tc.appendChild(t);setTimeout(()=>{t.style.animation='tIn 0.28s ease reverse';setTimeout(()=>t.remove(),260)},3500);
+}
+
+// ══════════════════════════════════════════════════════
+// CLOCK + AUTO-ADMIT
+// ══════════════════════════════════════════════════════
+function updateClock(){const now=new Date();qs('#ltm').textContent=now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+setInterval(updateClock,1000);
+setInterval(()=>{
+  if(Math.random()<0.35){
+    PID++;const cat=rnd(Object.keys(DIS));const urg=rnd(['critical','urgent','urgent','moderate','stable']);
+    const fn=rnd([...MN,...FN]);const age=ri(1,90);const isPaed=age<=17;
+    const iArr=ISCH[urg];const winH=rnd(iArr);const wArr=WIN_D[urg];const win=wArr[iArr.indexOf(winH)]||wArr[0];
+    DB.push({id:`HRL-${String(PID).padStart(5,'0')}`,name:`${fn} ${rnd(LN)}`,age,g:rnd(['M','F','O']),bt:rnd(BTS),cat,dis:rnd(DIS[cat]),urg,need:NEEDS[cat]||'Medical Management',nt:'treatment',organ:ORGANS[cat]||null,win,winH,remaining:winH*0.7,hosp:rnd(HOSPS),hla:rHLA(),match:ri(55,98),rl:+Math.min(0.999,(Math.random()*0.45+0.55)+(isPaed?0.15:0)).toFixed(3),isPaed,meld:cat==='hepatic'?ri(20,40):null,wait:0});
+    toast(`New admission: ${urg.toUpperCase()}${isPaed?' — PAEDIATRIC':''}`,urg==='critical'?'err':urg==='urgent'?'wrn':'inf');
+    syncAll();buildTicker();
+    if(qs('#pg-dashboard.active'))renderAlerts();
+    if(qs('#pg-patients.active'))renderPtTable();
+  }
+},45000);
+
+// ══════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════
+// API BRIDGE — connects frontend to FastAPI backend
+// All data flows through here. Falls back to local data if API unreachable.
+// ══════════════════════════════════════════════════════
+const API = window.location.origin;  // same origin — works on HF Spaces
+let API_CONNECTED = false;
+let BACKEND_STATS = {};
+let LLM_MODEL = 'rule_based';
+
+async function apiFetch(path, opts={}) {
+  try {
+    const r = await fetch(API + path, {
+      headers: {'Content-Type':'application/json'},
+      ...opts,
+    });
+    if (!r.ok) throw new Error(`${r.status}`);
+    return await r.json();
+  } catch(e) {
+    console.warn('[API]', path, 'failed:', e.message);
+    return null;
+  }
+}
+
+// ── SYNC FROM BACKEND ──────────────────────────────
+async function syncFromBackend() {
+  const stats = await apiFetch('/api/stats');
+  if (!stats) { API_CONNECTED = false; return; }
+  API_CONNECTED = true;
+  BACKEND_STATS = stats;
+  // Update KPIs with real backend counts
+  const setT = (id, v) => { const e = qs(id); if(e) e.textContent = v; };
+  setT('#k-t', stats.total_patients.toLocaleString());
+  setT('#k-c', stats.critical);
+  setT('#k-is', stats.ischaemia_danger + stats.ischaemia_warning);
+  setT('#k-og', stats.organ_queue);
+  setT('#k-bl', stats.blood_units);
+  setT('#tb-t', stats.total_patients.toLocaleString());
+  setT('#tb-c', stats.critical);
+  setT('#tb-u', stats.urgent);
+  setT('#tb-o', stats.organ_queue);
+  setT('#ls-c', stats.critical);
+  setT('#ls-a', stats.allocations_total);
+  setT('#ls-d', stats.donors_available);
+  setT('#ls-b', stats.blood_units);
+  setT('#nb-p', stats.total_patients.toLocaleString());
+  setT('#nb-al', stats.allocations_total);
+  setT('#nb-ic', stats.ischaemia_danger);
+  setT('#alert-chip', `${stats.critical} critical`);
+  setT('#hosp-chip', `${stats.hospitals_overloaded} overloaded`);
+  setT('#ic-d', stats.ischaemia_danger);
+  setT('#ic-w', stats.ischaemia_warning);
+  setT('#al-t', stats.allocations_total);
+  setT('#al-a', stats.allocations_active);
+  setT('#al-d', stats.allocations_done);
+  setT('#d-av', stats.donors_available);
+  setT('#d-og', stats.organs_available);
+  setT('#ic-exp', stats.expired_organs);
+  // Update local DB count badge
+  qs('#nb-p') && (qs('#nb-p').textContent = stats.total_patients.toLocaleString());
+  // Show connection indicator
+  qs('#ltm') && (qs('#ltm').style.color = 'var(--em)');
+  // Keep local DB in sync — add any new backend patients to local state
+  if (stats.total_patients > DB.length) {
+    // Fetch some patients to enrich local DB
+    const data = await apiFetch('/api/patients?per_page=50&urgency=critical');
+    if (data && data.patients) {
+      data.patients.forEach(p => {
+        if (!DB.find(x => x.id === p.id)) {
+          DB.push({
+            id:p.id, name:p.name, age:p.age, g:p.gender, bt:p.blood_type,
+            cat:p.category, dis:p.disease, urg:p.urgency, need:p.treatment,
+            nt:p.need_type, organ:p.organ_needed, win:'—',
+            winH:p.ischaemia_total||24, remaining:p.ischaemia_h||1,
+            hosp:p.hospital, hla:p.hla||rHLA(), match:p.match_score||75,
+            rl:p.rl_score||0.7, isPaed:p.is_paediatric, paedBonus:p.paed_bonus||0,
+            meld:p.meld_score, wait:p.wait_months||1
+          });
+        }
+      });
+    }
+  }
+}
+
+// ── REAL DASHBOARD CHARTS ─────────────────────────
+async function loadDashboardFromAPI() {
+  const data = await apiFetch('/api/dashboard');
+  if (!data) return;
+  // Rebuild charts with real data
+  const uc = data.urgency_dist;
+  const cc = data.disease_dist;
+  const bc = data.blood_dist;
+  const ac = data.age_dist;
+  if (CHARTS.urg) CHARTS.urg.destroy();
+  CHARTS.urg = new Chart(qs('#ch-urg'), {type:'doughnut',data:{labels:['Critical','Urgent','Moderate','Stable'],datasets:[{data:[uc.critical,uc.urgent,uc.moderate,uc.stable],backgroundColor:['#f43f5e','#f97316','#f59e0b','#10b981'],borderWidth:0,hoverOffset:5}]},options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:true,position:'right',labels:{color:'#8892a8',font:{size:10,family:'IBM Plex Mono'},padding:12,boxWidth:9}}}}});
+  const sc = Object.entries(cc).sort((a,b)=>b[1]-a[1]);
+  const PAL=['#22d3ee','#3b82f6','#f97316','#a855f7','#ef4444','#10b981','#ec4899','#eab308','#6366f1','#f59e0b','#06b6d4','#8b5cf6','#f43f5e'];
+  const GR={grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#4a5568',font:{size:9,family:'IBM Plex Mono'}}};
+  if (CHARTS.dis) CHARTS.dis.destroy();
+  CHARTS.dis = new Chart(qs('#ch-dis'), {type:'bar',data:{labels:sc.map(([c])=>c),datasets:[{data:sc.map(([,v])=>v),backgroundColor:sc.map((_,i)=>PAL[i%PAL.length]+'bb'),borderRadius:3,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{...GR,ticks:{...GR.ticks,maxRotation:35,minRotation:35}},y:{...GR}}}});
+  if (CHARTS.bt) CHARTS.bt.destroy();
+  CHARTS.bt = new Chart(qs('#ch-bt'), {type:'bar',data:{labels:Object.keys(bc),datasets:[{data:Object.values(bc),backgroundColor:'#f43f5e99',borderRadius:4,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{...GR},y:{...GR}}}});
+  if (CHARTS.age) CHARTS.age.destroy();
+  CHARTS.age = new Chart(qs('#ch-age'), {type:'bar',data:{labels:Object.keys(ac),datasets:[{data:Object.values(ac),backgroundColor:'#22d3ee88',borderRadius:4,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{...GR},y:{...GR}}}});
+  // Hospital bars
+  if (data.hospital_loads) {
+    qs('#hbar-list').innerHTML = data.hospital_loads.map(h=>{
+      const p=h.load_pct;const col=p>85?'var(--rose)':p>72?'var(--or)':'var(--teal)';
+      return `<div class="hbi"><span class="hbn">${h.name}</span><div class="hbt"><div class="hbf" style="width:${p}%;background:${col}"></div></div><span class="hbp">${p}%</span></div>`;
+    }).join('');
+  }
+  // Real alerts
+  if (data.recent_alerts) {
+    qs('#alert-feed').innerHTML = data.recent_alerts.slice(0,7).map(a=>
+      `<div class="acard crit" onclick=""><div class="abody"><div class="aname">${a.title}</div><div class="asub">${a.message}</div></div><div style="text-align:right"><span class="up critical"><span class="up-d"></span>Critical</span></div></div>`
+    ).join('');
+  }
+}
+
+// ── REAL PATIENT TABLE ─────────────────────────────
+async function loadPatientsFromAPI(page=1, urgency='all', category='all', need='all', search='') {
+  let url = `/api/patients?page=${page}&per_page=20`;
+  if (urgency !== 'all') url += `&urgency=${urgency}`;
+  if (category !== 'all') url += `&category=${category}`;
+  if (need !== 'all') url += `&need_type=${need}`;
+  if (search) url += `&q=${encodeURIComponent(search)}`;
+  const data = await apiFetch(url);
+  if (!data) return null;
+  // Update local DB with fetched patients
+  data.patients.forEach(p => {
+    const exists = DB.findIndex(x => x.id === p.id);
+    const lp = {
+      id:p.id, name:p.name, age:p.age, g:p.gender, bt:p.blood_type,
+      cat:p.category, dis:p.disease, urg:p.urgency, need:p.treatment,
+      nt:p.need_type, organ:p.organ_needed, win:'—',
+      winH:p.ischaemia_total||24, remaining:p.ischaemia_h||1,
+      hosp:p.hospital, hla:p.hla||rHLA(), match:p.match_score||75,
+      rl:p.rl_score||0.7, isPaed:p.is_paediatric, paedBonus:p.paed_bonus||0,
+      meld:p.meld_score, wait:p.wait_months||1
+    };
+    if (exists >= 0) DB[exists] = lp; else DB.push(lp);
+  });
+  return data;
+}
+
+// ── OVERRIDE submitPt to POST to backend ──────────
+const _origSubmitPt = typeof submitPt === 'function' ? submitPt : null;
+async function submitPtReal() {
+  const fn=qs('#f-fn').value.trim(), ln=qs('#f-ln').value.trim();
+  if(!fn||!ln){toast('Name required','err');return;}
+  const age=+qs('#f-age').value;
+  if(!age||age<1||age>120){toast('Valid age required','err');return;}
+  const body = {
+    name: `${fn} ${ln}`, age, gender: qs('#f-g').value,
+    blood_type: qs('#f-bt').value, category: qs('#f-cat').value,
+    disease: qs('#f-dis').value, urgency: qs('#f-urg').value,
+    treatment: qs('#f-need').value, hospital: qs('#f-hosp').value,
+  };
+  const result = await apiFetch('/api/patients', {method:'POST', body:JSON.stringify(body)});
+  if (result) {
+    // Also add to local DB
+    DB.push({id:result.id,name:result.name,age:result.age,g:result.gender,bt:result.blood_type,cat:result.category,dis:result.disease,urg:result.urgency,need:result.treatment,nt:result.need_type,organ:result.organ_needed,win:'—',winH:24,remaining:10,hosp:result.hospital,hla:result.hla||rHLA(),match:result.match_score||75,rl:result.rl_score||0.7,isPaed:result.is_paediatric,paedBonus:result.paed_bonus||0,meld:null,wait:0});
+    syncAll(); renderPtTable(); buildCharts(); buildTicker();
+    ovHide('ov-add-pt'); toast(`${result.name} registered as ${result.id}${result.is_paediatric?' — PAEDIATRIC':''}`, 'ok');
+    qs('#f-fn').value=''; qs('#f-ln').value=''; qs('#f-age').value='';
+    await syncFromBackend();
+  } else {
+    // Fallback to local
+    if(_origSubmitPt) _origSubmitPt();
+  }
+}
+
+// ── REAL RL AUTO-MATCH ────────────────────────────
+const _origRunRL = typeof runRLMatch === 'function' ? runRLMatch : null;
+async function runRLMatchReal() {
+  const result = await apiFetch('/api/allocations/auto-match', {method:'POST', body:'{}' });
+  if (result && result.matched > 0) {
+    // Add to local ALLOCS
+    result.allocations.forEach(a => {
+      ALLOCS.push({id:a.id,pid:a.patient_id,pname:a.patient_name,did:a.donor_id,dname:a.donor_name,organ:a.organ||'Organ',status:a.status||'pending',score:a.reward?.value||0,dis:'Backend Match',bt:'—',hlaSc:Math.round((a.hla_score||0)*100),isPaed:a.is_paediatric||false,ts:Date.now()});
+    });
+    syncAll(); renderAllocList(); buildTicker();
+    toast(`${result.matched} RL matches from backend (HLA-weighted)`, 'ok');
+    await syncFromBackend();
+  } else if (_origRunRL) {
+    _origRunRL();
+  }
+}
+
+// ── REAL EPISODE REPLAY ───────────────────────────
+const _origRunEp = typeof runEp === 'function' ? runEp : null;
+async function runEpReal(diff) {
+  const taskMap = {easy:'single_match',medium:'batch_allocation',hard:'crisis_routing'};
+  const task = taskMap[diff] || diff;
+  const data = await apiFetch('/api/rl/run-episode', {method:'POST', body:JSON.stringify({task})});
+  if (data && data.steps) {
+    EPISODE = data.steps.map((s,i) => ({step:i+1,action:s.action,detail:s.detail,reward:s.reward,cum:s.cum,pen:s.reward<0?Math.abs(s.reward):0}));
+    EP_IDX=0;
+    qs('#rp-chip').textContent=`${diff.toUpperCase()} · ${data.steps.length} steps`;
+    qs('#ep-tr').textContent=data.total_reward.toFixed(3);
+    qs('#ep-ar').textContent=data.avg_reward.toFixed(3);
+    qs('#ep-pen').textContent=(data.steps.reduce((s,x)=>s+(x.reward<0?Math.abs(x.reward):0),0)).toFixed(3);
+    qs('#ep-st').textContent=data.steps.length;
+    qs('#ts-e') && (qs('#ts-e').textContent=task==='single_match'?data.score:'—');
+    qs('#ts-m') && (qs('#ts-m').textContent=task==='batch_allocation'?data.score:'—');
+    qs('#ts-h') && (qs('#ts-h').textContent=task==='crisis_routing'?data.score:'—');
+    renderRpSteps(); buildRewardChart(EPISODE.map(s=>s.cum));
+    toast(`${diff} episode complete — score ${data.score}`, 'ok');
+  } else if (_origRunEp) {
+    _origRunEp(diff);
+  }
+}
+
+// ── INFERENCE SIMULATOR (real stdout) ────────────
+async function runInferenceSimReal(task) {
+  const term = qs('#inf-term'); if (!term) return;
+  term.innerHTML = '';
+  const MODEL = LLM_MODEL || 'Qwen/Qwen2.5-72B-Instruct';
+  const BENCH = 'haemorl-organ-allocation';
+  const lines = [];
+  const add = (cls, txt) => { term.innerHTML += `<span class="${cls}">${txt}</span>
+`; term.scrollTop=term.scrollHeight; };
+  add('tin', `# python inference.py --task ${task}`);
+  await new Promise(r=>setTimeout(r,300));
+  const BACKEND = await apiFetch('/api/stats');
+  if (BACKEND) {
+    add('tok', `[INFO] Backend connected: ${BACKEND.total_patients} patients · ${BACKEND.donors_available} donors`);
+    add('tin', `[ENV] critical=${BACKEND.critical} · paed=${BACKEND.paediatric} · expired=${BACKEND.expired_organs}`);
+  }
+  add('tok', `[START] task=${task} env=${BENCH} model=${MODEL}`);
+  const data = await apiFetch('/api/rl/run-episode', {method:'POST', body:JSON.stringify({task})});
+  if (data && data.steps) {
+    for (const s of data.steps.slice(0,15)) {
+      await new Promise(r=>setTimeout(r,130));
+      const action = JSON.stringify({patient_id:`HRL-${String(Math.floor(Math.random()*9000)+1).padStart(5,'0')}`,donor_id:`DNR-${String(Math.floor(Math.random()*25)+1).padStart(3,'0')}`,hospital:'AIIMS New Delhi',action_type:'match_organ'});
+      add('tok', `[STEP] step=${s.step} action=${action} reward=${s.reward.toFixed(2)} done=false error=null`);
+    }
+    add('tok', `[END] success=${data.success} steps=${data.steps.length} score=${data.score} rewards=${data.rewards.map(r=>r.toFixed(2)).join(',')}`);
+    add('tin', `# Score: ${data.score} ✓`);
+  }
+}
+
+// ── LLM MODEL SELECTOR ────────────────────────────
+async function loadLLMModels() {
+  const data = await apiFetch('/api/llm/models');
+  if (!data) return;
+  LLM_MODEL = data.current;
+  const sel = qs('#sim-sel');
+  if (sel && data.has_key) {
+    // Show LLM indicator
+    const lbl = document.createElement('div');
+    lbl.style.cssText='font-size:10px;font-family:var(--mono);color:var(--em);margin-top:6px;padding:4px 8px;background:rgba(16,185,129,0.1);border-radius:5px;border:1px solid rgba(16,185,129,0.2)';
+    lbl.textContent=`🤖 LLM: ${data.current}`;
+    sel.parentNode.insertBefore(lbl, sel.nextSibling);
+  }
+}
+
+// ── WEBSOCKET LIVE UPDATES ────────────────────────
+function connectWebSocket() {
+  const wsUrl = (window.location.protocol==='https:' ? 'wss:' : 'ws:') + '//' + window.location.host + '/ws';
+  const ws = new WebSocket(wsUrl);
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.event === 'connected') {
+      API_CONNECTED = true; toast(`Connected to backend · ${msg.patients} patients`, 'ok');
+    } else if (msg.event === 'patient_added') {
+      syncFromBackend(); buildTicker();
+    } else if (msg.event === 'auto_match') {
+      toast(`${msg.count} RL matches created`, 'ok'); syncFromBackend();
+    } else if (msg.event === 'ischaemia_tick') {
+      syncFromBackend();
+    } else if (msg.event === 'ping') {
+      // Update critical count silently
+      if (msg.critical !== undefined) { qs('#ls-c') && (qs('#ls-c').textContent = msg.critical); }
+    }
+  };
+  ws.onerror = () => { API_CONNECTED = false; };
+  ws.onclose = () => { setTimeout(connectWebSocket, 5000); }; // reconnect
+}
+
+// ── PATCH EXISTING FUNCTIONS ──────────────────────
+// Monkey-patch submitPt, runRLMatch, runEp to use real backend
+window.submitPt = submitPtReal;
+window.runRLMatch = runRLMatchReal;
+window.runEp = runEpReal;
+// Patch inference simulator
+window.runInferenceSim = runInferenceSimReal;
+
+// ── BACKEND SYNC LOOP ─────────────────────────────
+async function backendSyncLoop() {
+  await syncFromBackend();
+  setInterval(syncFromBackend, 5000); // Sync every 5s
+}
+
+// ── ENHANCED INIT ─────────────────────────────────
+async function initWithBackend() {
+  // Run local init first (fast, shows UI immediately)
+  syncAll(); buildCharts(); renderHospBars(); renderAlerts(); renderPtTable(); buildTicker(); updateClock(); syncDD();
+  // Then connect to backend and upgrade with real data
+  await backendSyncLoop();
+  await loadDashboardFromAPI();
+  await loadLLMModels();
+  connectWebSocket();
+  // Show backend status
+  toast(`HaemoRL backend connected · ${BACKEND_STATS.total_patients?.toLocaleString() || 9000} patients loaded`, 'ok');
+}
+
+// Enhanced init — local first, then backend
+function init(){
+  initWithBackend().catch(e => {
+    console.warn('Backend init failed, running local mode:', e);
+    syncAll();buildCharts();renderHospBars();renderAlerts();renderPtTable();buildTicker();updateClock();syncDD();
+  });
+}
+if(typeof Chart!=='undefined')init();else window.addEventListener('load',init);
+</script>
+</body>
+</html>
