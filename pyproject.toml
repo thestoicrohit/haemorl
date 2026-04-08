@@ -21,8 +21,7 @@ dependencies = [
 ]
 
 [project.scripts]
-serve = "server.app:app"
-start = "app:app"
+serve = "server.app:main"
 
 [project.urls]
 Homepage = "https://huggingface.co/spaces/thestoicrohit/haemorl"
@@ -32,7 +31,7 @@ Repository = "https://github.com/thestoicrohit/haemorl"
 name = "haemorl-organ-allocation"
 version = "4.0.0"
 tasks = ["single_match", "batch_allocation", "crisis_routing"]
-entry_point = "server.app:app"
+entry_point = "server.app:main"
 space_url = "https://huggingface.co/spaces/thestoicrohit/haemorl"
 
 [tool.setuptools.packages.find]
