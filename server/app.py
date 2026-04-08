@@ -8,7 +8,9 @@ import uvicorn
 
 
 def main():
-    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "7860")))
+    """Entry point for multi-mode deployment."""
+    port = int(os.getenv("PORT", "7860"))
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
 
 if __name__ == "__main__":
