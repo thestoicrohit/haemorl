@@ -17,7 +17,11 @@ dependencies = [
     "openai==1.30.1",
     "python-multipart==0.0.9",
     "websockets==12.0",
+    "openenv-core>=0.2.0",
 ]
+
+[project.scripts]
+serve = "app:app"
 
 [project.urls]
 Homepage = "https://huggingface.co/spaces/thestoicrohit/haemorl"

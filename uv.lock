@@ -1,0 +1,15 @@
+version = 1
+requires-python = ">=3.10"
+
+[[package]]
+name = "haemorl-organ-allocation"
+version = "4.0.0"
+source = { virtual = "." }
+dependencies = [
+  { name = "fastapi" },
+  { name = "uvicorn" },
+  { name = "pydantic" },
+  { name = "openai" },
+  { name = "websockets" },
+  { name = "openenv-core" },
+]
