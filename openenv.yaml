@@ -1,0 +1,50 @@
+name: haemorl-organ-allocation
+version: "4.0.0"
+description: RL-based smart organ allocation system. 1500 patients across 13 disease categories with HLA typing, ischaemia clocks, paediatric priority, and AI chatbot.
+tags: [openenv, medical, rl, organ-allocation]
+
+tasks:
+  - id: single_match
+    difficulty: easy
+    max_steps: 10
+    baseline_score: 0.847
+    description: Match 1 critical patient to best compatible donor using HLA + blood type scoring.
+
+  - id: batch_allocation
+    difficulty: medium
+    max_steps: 30
+    baseline_score: 0.693
+    description: Optimally match 5 critical patients to 5 donors under full medical constraints.
+
+  - id: crisis_routing
+    difficulty: hard
+    max_steps: 60
+    baseline_score: 0.521
+    description: Live ischaemia clocks, trauma injections, hospital overload events.
+
+observation_space:
+  type: dict
+  dims: 42
+
+action_space:
+  type: structured
+  fields:
+    - patient_id
+    - donor_id
+    - hospital
+    - action_type
+
+reward_range: [-1.0, 1.0]
+shaped_reward: true
+partial_progress: true
+
+endpoints:
+  reset: POST /reset
+  step: POST /step
+  state: GET /state
+  tasks: GET /tasks
+  grade: POST /grade
+  validate: GET /validate
+  health: GET /health
+
+space_url: https://huggingface.co/spaces/thestoicrohit/haemorl
