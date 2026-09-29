@@ -1,50 +1,107 @@
-name: haemorl-organ-allocation
-version: "4.0.0"
-description: RL-based smart organ allocation system. 1500 patients across 13 disease categories with HLA typing, ischaemia clocks, paediatric priority, and AI chatbot.
-tags: [openenv, medical, rl, organ-allocation]
+openenv: "1.0"
+
+metadata:
+  name: haemorl-organ-allocation
+  version: "5.1.0"
+  description: >
+    Organ & blood allocation environment modelled on India's transplant network:
+    critical patients with live ischaemia clocks, donors with HLA typing, and
+    hospitals with finite capacity. The agent matches patients to donors and
+    hospitals; an 8-component shaped reward scores each decision.
+  tags: [medical, organ-allocation, reinforcement-learning, india]
+  license: MIT
 
 tasks:
   - id: single_match
     difficulty: easy
     max_steps: 10
+    description: Match 1 critical patient to the best compatible donor using HLA + blood type scoring.
     baseline_score: 0.847
-    description: Match 1 critical patient to best compatible donor using HLA + blood type scoring.
-
   - id: batch_allocation
     difficulty: medium
     max_steps: 30
+    description: Match 5 critical patients to 5 donors under full medical constraints.
     baseline_score: 0.693
-    description: Optimally match 5 critical patients to 5 donors under full medical constraints.
-
   - id: crisis_routing
     difficulty: hard
     max_steps: 60
+    description: Live ischaemia clocks, trauma injections every 5 steps, hospital overload, geographic pressure.
     baseline_score: 0.521
-    description: Live ischaemia clocks, trauma injections, hospital overload events.
 
 observation_space:
   type: dict
-  dims: 42
+  description: Snapshot returned by /reset, /step and /state (key fields below).
+  fields:
+    episode_id: str
+    step: int
+    total_patients: int
+    critical_count: int
+    urgent_count: int
+    organ_queue: int
+    blood_units_total: int
+    donors_available: int
+    organs_available: int
+    avg_hla_score: float            # mean HLA match of the most urgent patient vs top donors
+    min_ischaemia_remaining: float  # hours left on the most urgent clock
+    paediatric_critical: int
+    expired_organs: int
+    hospital_avg_load: float        # percent
+    hospitals_overloaded: int       # load > 85%
+    active_allocations: int
+    completed_allocations: int
+    cumulative_reward: float
+    kpe_candidates: int             # kidney paired-exchange eligible, unallocated
+    p1, p2, p3: dict                # three most urgent critical patients
+    d1, d2, d3: dict                # three available donors
 
 action_space:
   type: structured
   fields:
-    - patient_id
-    - donor_id
-    - hospital
-    - action_type
+    patient_id: str                 # e.g. "P-0042"
+    donor_id: str                   # e.g. "D-0007"
+    hospital: str                   # hospital name, e.g. "AIIMS New Delhi"
+    action_type: "match_organ | skip"
+  notes: >
+    A match needs an unallocated patient and an available donor; otherwise the step
+    returns info.last_action_error and a negative reward. "skip" costs -0.30 while
+    critical patients are waiting.
 
-reward_range: [-1.0, 1.0]
-shaped_reward: true
-partial_progress: true
+reward:
+  type: shaped
+  range: [-1.0, 1.0]
+  returned_as: "reward: {value, hla_score, breakdown, explanation, blood_ok, survival_pct}"
+  components:
+    blood:  "+0.25 compatible / -0.15 incompatible"
+    hla:    "0 to +0.35 (6-antigen match)"
+    isch:   "-0.30 to +0.22 (urgency of the ischaemia clock)"
+    paed:   "0 to +0.30 (NOTTO paediatric priority, PELD bonus)"
+    hosp:   "-0.30 to +0.08 (hospital load and ICU availability)"
+    surv:   "0 to +0.15 (survival estimate from age, MELD/PELD, CD4, EF, FEV1)"
+    geo:    "-0.04 to +0.06 (transport distance)"
+    expiry: "-0.05 per expired organ, capped at -0.30"
+  bonuses: "wait > 12/24 months +0.015/+0.03 · on dialysis +0.02"
 
-endpoints:
-  reset: POST /reset
-  step: POST /step
-  state: GET /state
-  tasks: GET /tasks
-  grade: POST /grade
-  validate: GET /validate
-  health: GET /health
+episode:
+  termination:
+    - max_steps reached
+    - single_match only: no critical patients left
 
-space_url: https://huggingface.co/spaces/thestoicrohit/haemorl
+graders:
+  - {id: single_match,     passes_at: 0.25}
+  - {id: batch_allocation, passes_at: 0.30}
+  - {id: crisis_routing,   passes_at: 0.20}
+
+api:
+  base_url: http://localhost:7860
+  endpoints:
+    reset:    {method: POST, path: /reset,    body: "{task?: str}"}
+    step:     {method: POST, path: /step,     body: "{patient_id, donor_id, hospital, action_type}"}
+    state:    {method: GET,  path: /state}
+    tasks:    {method: GET,  path: /tasks}
+    grade:    {method: POST, path: /grade}
+    validate: {method: GET,  path: /validate}
+
+deployment:
+  runtime: python3.11
+  framework: FastAPI + uvicorn
+  container: Dockerfile (port 7860, single worker)

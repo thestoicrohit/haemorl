@@ -1,0 +1,26 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+data/
+inference_results.json
+results.json
+.env
+
+# Legacy files from earlier versions — not used by the app
+/_archive_unused/
+/config.py
+/database.py
+/seed.py
+/reward_engine.py
+/models.py
+/websocket.py
+/ind.json
+/india.svg
+/india_path.txt
+/check_api.bat
+/open_frontend.bat
+/open_haemorl.bat
+/run_backend.bat
+/install_deps.bat

@@ -1,39 +1,46 @@
-[build-system]
-requires = ["setuptools>=68.0", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
-
-[project]
-name = "haemorl-organ-allocation"
-version = "4.0.0"
-description = "RL-Based Smart Organ Allocation — OpenEnv compliant environment"
+[tool.poetry]
+name = "haemorl"
+version = "5.1.0"
+description = "HaemoRL — Real-time Organ Allocation Reinforcement Learning Environment"
+authors = ["HaemoRL Team <haemorl@example.com>"]
 readme = "README.md"
-license = {text = "MIT"}
-requires-python = ">=3.10"
-dependencies = [
-    "fastapi==0.111.0",
-    "uvicorn[standard]==0.29.0",
-    "pydantic==2.7.1",
-    "httpx==0.27.0",
-    "openai==1.30.1",
-    "python-multipart==0.0.9",
-    "websockets==12.0",
-    "openenv-core>=0.2.0",
+license = "MIT"
+keywords = ["reinforcement-learning", "organ-allocation", "medical-ai", "fastapi"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
 ]
 
-[project.scripts]
-server = "server.app:main"
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.111.0"
+uvicorn = {version = "^0.30.0", extras = ["standard"]}
+pydantic = "^2.7.0"
+httpx = "^0.27.0"
+python-multipart = "^0.0.9"
+websockets = "^12.0"
 
-[project.urls]
-Homepage = "https://huggingface.co/spaces/thestoicrohit/haemorl"
-Repository = "https://github.com/thestoicrohit/haemorl"
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"
+pytest-asyncio = "^0.23"
+httpx = "^0.27"
+black = "^24.0"
+ruff = "^0.4"
 
-[tool.openenv]
-name = "haemorl-organ-allocation"
-version = "4.0.0"
-tasks = ["single_match", "batch_allocation", "crisis_routing"]
-entry_point = "server.app:main"
-space_url = "https://huggingface.co/spaces/thestoicrohit/haemorl"
+[tool.poetry.scripts]
+haemorl = "app:main"
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["server*"]
+[build-system]
+requires = ["poetry-core>=1.8.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
