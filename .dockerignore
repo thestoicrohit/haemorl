@@ -9,3 +9,4 @@ _archive_unused/
 *.bat
 .env
 .gitignore
+docs/
